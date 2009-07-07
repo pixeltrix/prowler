@@ -26,5 +26,5 @@ Gem::Specification.new do |s|
       'test/prowler_test.rb',
     ]
 
-  s.test_file = 'test/prowl_test.rb'
+  s.test_file = 'test/prowler_test.rb'
 end
