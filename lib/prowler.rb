@@ -1,3 +1,44 @@
+# Prowler is a plugin for integrating apps with the Prowl iPhone application.
+#
+# === Installation
+#
+# From your project's RAILS_ROOT, run:
+#
+#   script/plugin install git://github.com/pixeltrix/prowler.git
+#
+# === Configuration
+#
+# You should have something like this in config/initializers/prowler.rb.
+#
+#   Prowler.configure do |config|
+#     config.username = 'username'
+#     config.password = 'password'
+#     config.application = 'www.example.com'
+#   end
+#
+# You can test that Prowler is working in your production environment by using
+# this rake task (from RAILS_ROOT):
+#
+#   rake prowler:test
+#
+# If everything is configured properly the task will send a request to
+# prowl.weks.net which will be appear on your iPhone after a short delay.
+#
+# === Usage
+#
+# To use Prowler within your application just call the notify method, e.g.
+#
+#   Prowler.notify "Event", "Description"
+#
+# === About
+#
+# Prowler relies upon the Prowl iPhone application which is advertised as
+# a Growl notification forwarder from your Mac. However they provide an API
+# which can be called by a generic script which allows you to use the
+# application as a general push notification application for your iPhone.
+#
+# For more about the Prowl application see: http://prowl.weks.net/
+
 require 'logger'
 require 'net/http'
 require 'net/https'
