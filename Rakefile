@@ -20,3 +20,17 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.rdoc_files.include('README')
   rdoc.rdoc_files.include('lib/**/*.rb')
 end
+
+begin
+  require 'jeweler'
+  Jeweler::Tasks.new do |gemspec|
+    gemspec.name = "prowler"
+    gemspec.summary = "Provides access to the Prowl API."
+    gemspec.email = "andyw@pixeltrix.co.uk"
+    gemspec.homepage = "http://github.com/pixeltrix/prowler/"
+    gemspec.description = "A simple wrapper class that provides basic access to the Prowl API."
+    gemspec.authors = ["Andrew White"]
+  end
+rescue LoadError
+  puts "Jeweler not available. Install it with: sudo gem install technicalpickles-jeweler -s http://gems.github.com"
+end
