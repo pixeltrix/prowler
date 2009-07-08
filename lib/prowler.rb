@@ -11,8 +11,7 @@
 # You should have something like this in config/initializers/prowler.rb.
 #
 #   Prowler.configure do |config|
-#     config.username = 'username'
-#     config.password = 'password'
+#     config.api_key = 'ffffffffffffffffffffffffffffffffffffffff'
 #     config.application = 'www.example.com'
 #   end
 #
@@ -28,7 +27,7 @@
 #
 # To use Prowler within your application just call the notify method, e.g.
 #
-#   Prowler.notify "Event", "Description"
+#   Prowler.notify "Event", "Description", Prowler::Priority::NORMAL
 #
 # === About
 #
@@ -44,9 +43,18 @@ require 'net/http'
 require 'net/https'
 
 module Prowler
+
+  module Priority
+    VERY_LOW  = -2
+    MODERATE  = -1
+    NORMAL    = 0
+    HIGH      = 1
+    EMERGENCY = 2
+  end
+
   class << self
     attr_accessor :host, :port, :secure
-    attr_accessor :username, :password
+    attr_accessor :api_key, :username, :password
     attr_accessor :application, :send_notifications
 
     # The host to connect to.
@@ -69,6 +77,11 @@ module Prowler
       yield self
     end
 
+    def username=(value) #:nodoc:
+      logger.warn "The username/password API has been deprecated please switch to using an API key."
+      @username = value
+    end
+
     # Whether to send notifications
     def send_notifications
       @send_notifications.nil? ? true : !!@send_notifications
@@ -77,15 +90,19 @@ module Prowler
 
     # Reset configuration
     def reset_configuration
-      @host = @port = @secure = @application = @username = @password = nil
+      @host = @port = @secure = @application = @username = @password = @api_key = nil
     end
 
     # Whether the library has been configured
     def configured?
-      !(@application.nil? || @username.nil? || @password.nil?)
+      !@application.nil? && (!@api_key.nil? || !(@username.nil? || @password.nil?))
     end
 
     def path(*params) #:nodoc:
+      sprintf("/publicapi/add?apikey=%s&priority=%d&application=%s&event=%s&description=%s", *params)
+    end
+
+    def deprecated_path(*params) #:nodoc:
       sprintf("/api/add_notification.php?application=%s&event=%s&description=%s", *params)
     end
 
@@ -99,7 +116,7 @@ module Prowler
     # Send a notification to your iPhone:
     # * event: The title of notification you want to send.
     # * message: The text of the notification message you want to send.
-    def notify(event, message)
+    def notify(event, message, priority = Priority::NORMAL)
       raise RuntimeError, "Prowler needs to be configured first before using it" unless configured?
 
       http = Net::HTTP.new(host, port)
@@ -111,8 +128,12 @@ module Prowler
         }
         http.read_timeout = 5 # seconds
         http.open_timeout = 2 # seconds
-        request = Net::HTTP::Get.new(path(URI.escape(application), URI.escape(event), URI.escape(message)), headers)
-        request.basic_auth(username, password)
+        if api_key
+          request = Net::HTTP::Get.new(path(api_key, priority, URI.escape(application), URI.escape(event), URI.escape(message)), headers)
+        else
+          request = Net::HTTP::Get.new(deprecated_path(URI.escape(application), URI.escape(event), URI.escape(message)), headers)
+          request.basic_auth(username, password)
+        end
         response = begin
                      http.request(request) if send_notifications?
                    rescue TimeoutError => e

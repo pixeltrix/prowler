@@ -1,0 +1,15 @@
+*1.0.2 (July 8th, 2009)
+
+* Switch to new API using apikey and deprecate old API
+
+
+*1.0.1 (July 7th, 2009)
+
+* Update RDoc documentation
+
+* Use Jeweler for gem management
+
+
+*1.0.0 (July 7th, 2009)
+
+* First release

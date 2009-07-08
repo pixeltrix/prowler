@@ -14,8 +14,7 @@ CONFIGURATION
 You should have something like this in config/initializers/prowler.rb.
 
   Prowler.configure do |config|
-    config.username = 'username'
-    config.password = 'password'
+    config.api_key = 'ffffffffffffffffffffffffffffffffffffffff'
     config.application = 'www.example.com'
   end
 
@@ -31,7 +30,7 @@ USAGE
 
 To use Prowler within your application just call the notify method, e.g.
 
-  Prowler.notify "Event", "Description"
+  Prowler.notify "Event", "Description", Prowler::Priority::NORMAL
 
 ABOUT
 
