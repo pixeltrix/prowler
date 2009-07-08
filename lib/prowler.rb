@@ -114,8 +114,9 @@ module Prowler
     end
 
     # Send a notification to your iPhone:
-    # * event: The title of notification you want to send.
-    # * message: The text of the notification message you want to send.
+    # * event:    The title of notification you want to send.
+    # * message:  The text of the notification message you want to send.
+    # * priority: The priority of the notification - see Prowler::Priority. (Optional)
     def notify(event, message, priority = Priority::NORMAL)
       raise RuntimeError, "Prowler needs to be configured first before using it" unless configured?
 
