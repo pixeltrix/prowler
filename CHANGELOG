@@ -1,3 +1,10 @@
+*1.0.3 (July 9th, 2009)
+
+* Add verify method for configured API key
+
+* Use POST to send notifications
+
+
 *1.0.2 (July 8th, 2009)
 
 * Switch to new API using apikey and deprecate old API
