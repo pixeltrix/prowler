@@ -46,6 +46,7 @@ module Prowler
 
   API_PATH = "/publicapi/add"
   DEPRECATED_API_PATH = "/api/add_notification.php?application=%s&event=%s&description=%s"
+  VERIFY_PATH = "/publicapi/verify?apikey=%s"
   USER_AGENT = "Prowler/1.0.3"
 
   module Priority
@@ -145,6 +146,37 @@ module Prowler
           # Do nothing
         else
           logger.error "Prowl Failure: #{response.class}\n#{response.body if response.respond_to? :body}"
+        end
+      end
+    end
+
+    # Verify the configured API key is valid
+    def verify
+      raise RuntimeError, "Prowler needs to be configured first before using it" unless api_key
+
+      http = Net::HTTP.new(host, port)
+      http.use_ssl = secure
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      http.start do
+        headers = {
+          'User-Agent' => USER_AGENT
+        }
+        http.read_timeout = 5 # seconds
+        http.open_timeout = 2 # seconds
+        request = Net::HTTP::Get.new(sprintf(VERIFY_PATH, api_key), headers)
+        response = begin
+                     http.request(request) if send_notifications?
+                   rescue TimeoutError => e
+                     logger.error "Timeout while contacting the Prowl server."
+                     nil
+                   end
+        case response
+        when Net::HTTPSuccess then
+          logger.info "Prowl Success: #{response.class}"
+          true
+        else
+          logger.error "Prowl Failure: #{response.class}\n#{response.body if response.respond_to? :body}"
+          false
         end
       end
     end
