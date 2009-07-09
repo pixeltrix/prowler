@@ -2,11 +2,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{prowler}
-  s.version = "1.0.2"
+  s.version = "1.0.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Andrew White"]
-  s.date = %q{2009-07-08}
+  s.date = %q{2009-07-09}
   s.description = %q{A simple wrapper class that provides basic access to the Prowl API.}
   s.email = %q{andyw@pixeltrix.co.uk}
   s.extra_rdoc_files = [
