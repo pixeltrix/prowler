@@ -44,6 +44,10 @@ require 'net/https'
 
 module Prowler
 
+  API_PATH = "/publicapi/add"
+  DEPRECATED_API_PATH = "/api/add_notification.php?application=%s&event=%s&description=%s"
+  USER_AGENT = "Prowler/1.0.3"
+
   module Priority
     VERY_LOW  = -2
     MODERATE  = -1
@@ -98,14 +102,6 @@ module Prowler
       !@application.nil? && (!@api_key.nil? || !(@username.nil? || @password.nil?))
     end
 
-    def path(*params) #:nodoc:
-      sprintf("/publicapi/add?apikey=%s&priority=%d&application=%s&event=%s&description=%s", *params)
-    end
-
-    def deprecated_path(*params) #:nodoc:
-      sprintf("/api/add_notification.php?application=%s&event=%s&description=%s", *params)
-    end
-
     # Returns the default logger or a logger that prints to STDOUT.
     def logger
       ActiveRecord::Base.logger
@@ -125,14 +121,15 @@ module Prowler
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
       http.start do
         headers = {
-          'User-Agent' => 'ProwlScript/1.0'
+          'User-Agent' => USER_AGENT
         }
         http.read_timeout = 5 # seconds
         http.open_timeout = 2 # seconds
         if api_key
-          request = Net::HTTP::Get.new(path(api_key, priority, URI.escape(application), URI.escape(event), URI.escape(message)), headers)
+          request = Net::HTTP::Post.new(API_PATH, headers)
+          request.set_form_data({ 'apikey' => api_key, 'priority' => priority, 'application' => application, 'event' => event, 'description' => message })
         else
-          request = Net::HTTP::Get.new(deprecated_path(URI.escape(application), URI.escape(event), URI.escape(message)), headers)
+          request = Net::HTTP::Get.new(sprintf(DEPRECATED_API_PATH, URI.escape(application), URI.escape(event), URI.escape(message)), headers)
           request.basic_auth(username, password)
         end
         response = begin

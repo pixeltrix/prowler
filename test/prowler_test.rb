@@ -105,13 +105,6 @@ class ProwlerTest < Test::Unit::TestCase
       Prowler.send_notifications = false
     end
 
-    should "encode the url parameters" do
-      expectation = Prowler.expects(:path)
-      expectation.with("apikey", 0, "Application%20Name", "Event%20Name", "Message%20Text")
-      expectation.returns("/publicapi/add?apikey=apikey&priority=0application=Application%20Name&event=Event%20Name&description=Message%20Text")
-      Prowler.notify("Event Name", "Message Text", Prowler::Priority::NORMAL)
-    end
-
     should "not verify SSL certificates" do
       Net::HTTP.any_instance.expects(:use_ssl=).with(true)
       Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_NONE)
