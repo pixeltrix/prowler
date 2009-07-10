@@ -1,8 +1,11 @@
+* Add support for provider key
+
 * Clean up implementation
 
 * Remove unnecessary configuration
 
 * Remove deprecated API
+
 
 *1.0.3 (July 9th, 2009)
 

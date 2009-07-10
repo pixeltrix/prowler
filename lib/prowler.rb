@@ -58,7 +58,7 @@ module Prowler
   class ConfigurationError < StandardError; end
 
   class << self
-    attr_accessor :api_key
+    attr_accessor :api_key, :provider_key
     attr_accessor :application, :send_notifications
     attr_accessor :read_timeout, :open_timeout
 
@@ -75,7 +75,7 @@ module Prowler
 
     # Reset configuration
     def reset_configuration
-      @application = @api_key = nil
+      @application = @api_key = @provider_key = nil
     end
 
     # Whether the library has been configured
@@ -106,7 +106,7 @@ module Prowler
       raise ConfigurationError, "You must provide an API key to send notifications" if api_key.nil?
       raise ConfigurationError, "You must provide an application name to send notifications" if application.nil?
       perform(
-        :add, api_key,
+        :add, api_key, provider_key,
         {
           :application => application,
           :event => event,
@@ -122,8 +122,8 @@ module Prowler
       perform(:verify, api_key, provider_key, {}, :get)
     end
 
-    def perform(command, api_key, data = {}, method = :post) #:nodoc:
-      params = { :apikey => api_key }.merge(data).delete_if { |k,v| v.nil? }
+    def perform(command, api_key, provider_key, data = {}, method = :post) #:nodoc:
+      params = { :apikey => api_key, :provider_key => provider_key }.merge(data).delete_if { |k,v| v.nil? }
       case method
       when :post
         perform_post(command, params)
