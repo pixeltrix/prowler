@@ -35,6 +35,17 @@
 #   prowler = Prowler.new('apikey', 'application')
 #   prowler.notify "Event", "Description", Prowler::Priority::NORMAL
 #
+# If performance is a concern then there is built in support for Delayed::Job.
+# This can done either on a global basis, e.g.
+#
+#   Prowler.configure do |config|
+#     config.delayed = true
+#   end
+#
+# or on a individual message basis, e.g.
+#
+#   Prowler.notify "Event", "Description", Prowler::Priority::NORMAL, true
+#
 # === About
 #
 # Prowler relies upon the Prowl iPhone application which is advertised as
@@ -63,10 +74,26 @@ class Prowler
 
   class ConfigurationError < StandardError; end
 
+  class DelayedJob
+    attr_accessor :api_key, :provider_key, :application
+    attr_accessor :event, :message, :priority
+
+    def initialize
+      yield self if block_given?
+    end
+
+    # Send notification
+    def perform
+      prowler = Prowler.new(api_key, application, provider_key)
+      prowler.notify(event, message, priority, false)
+    end
+  end
+
   class << self
     attr_accessor :api_key, :provider_key
     attr_accessor :application, :send_notifications
     attr_accessor :read_timeout, :open_timeout
+    attr_accessor :delayed
 
     # Call this method to configure your account details in an initializer.
     def configure
@@ -78,6 +105,11 @@ class Prowler
       @send_notifications.nil? ? true : !!@send_notifications
     end
     alias :send_notifications? :send_notifications
+
+    # Whether to use Delayed::Job to send notifications
+    def delayed
+      @delayed.nil? ? false : !!@delayed
+    end
 
     # Reset configuration
     def reset_configuration
@@ -108,18 +140,23 @@ class Prowler
     # * event:    The title of notification you want to send.
     # * message:  The text of the notification message you want to send.
     # * priority: The priority of the notification - see Prowler::Priority. (Optional)
-    def notify(event, message, priority = Priority::NORMAL)
+    # * delayed:  Whether to use Delayed::Job to send notifications. (Optional)
+    def notify(event, message, priority = Priority::NORMAL, delayed = self.delayed)
       raise ConfigurationError, "You must provide an API key to send notifications" if api_key.nil?
       raise ConfigurationError, "You must provide an application name to send notifications" if application.nil?
-      perform(
-        :add, api_key, provider_key,
-        {
-          :application => application,
-          :event => event,
-          :description => message,
-          :priority => priority
-        }
-      )
+      if delayed
+        enqueue_delayed_job(self, event, message, priority)
+      else
+        perform(
+          :add, api_key, provider_key,
+          {
+            :application => application,
+            :event => event,
+            :description => message,
+            :priority => priority
+          }
+        )
+      end
     end
 
     # Verify the configured API key is valid
@@ -136,6 +173,18 @@ class Prowler
       else
         perform_get(command, params)
       end
+    end
+
+    def enqueue_delayed_job(config, event, message, priority) #:nodoc:
+      record = Delayed::Job.enqueue(DelayedJob.new do |job|
+        job.api_key = config.api_key
+        job.provider_key = config.provider_key
+        job.application = config.application
+        job.event = event
+        job.message = message
+        job.priority = priority
+      end)
+      !record.new_record?
     end
 
     private
@@ -197,18 +246,23 @@ class Prowler
   # * event:    The title of notification you want to send.
   # * message:  The text of the notification message you want to send.
   # * priority: The priority of the notification - see Prowler::Priority. (Optional)
-  def notify(event, message, priority = Priority::NORMAL)
+  # * delayed:  Whether to use Delayed::Job to send notifications. (Optional)
+  def notify(event, message, priority = Priority::NORMAL, delayed = self.class.delayed)
     raise ConfigurationError, "You must provide an API key to send notifications" if api_key.nil?
     raise ConfigurationError, "You must provide an application name to send notifications" if application.nil?
-    self.class.perform(
-      :add, api_key, provider_key,
-      {
-        :application => application,
-        :event => event,
-        :description => message,
-        :priority => priority
-      }
-    )
+    if delayed
+      self.class.enqueue_delayed_job(self, event, message, priority)
+    else
+      self.class.perform(
+        :add, api_key, provider_key,
+        {
+          :application => application,
+          :event => event,
+          :description => message,
+          :priority => priority
+        }
+      )
+    end
   end
 
   # Verify the configured API key is valid

@@ -38,6 +38,17 @@ can create an instance of the Prowler class to override the global settings, e.g
   prowler = Prowler.new('apikey', 'application')
   prowler.notify "Event", "Description", Prowler::Priority::NORMAL
 
+If performance is a concern then there is built in support for Delayed::Job.
+This can done either on a global basis, e.g.
+
+  Prowler.configure do |config|
+    config.delayed = true
+  end
+
+or on a individual message basis, e.g.
+
+  Prowler.notify "Event", "Description", Prowler::Priority::NORMAL, true
+
 ABOUT
 
 Prowler relies upon the Prowl iPhone application which is advertised as

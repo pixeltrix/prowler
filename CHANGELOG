@@ -1,3 +1,5 @@
+* Add support for Delayed::Job background processing
+
 * Update documentation for instance level configuration
 
 * Add support for instance level configuration
