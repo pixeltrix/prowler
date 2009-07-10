@@ -54,47 +54,6 @@ class ProwlerTest < Test::Unit::TestCase
     end
   end
 
-  context "Prowler deprecated configuration" do
-    setup do
-      Logger.any_instance.stubs(:warn)
-      Prowler.reset_configuration
-      Prowler.send_notifications = false
-    end
-
-    should "be done with a block" do
-      Prowler.configure do |config|
-        config.host = "prowler"
-        config.port = 666
-        config.secure = false
-        config.application = "application"
-        config.username = "username"
-        config.password = "password"
-      end
-
-      assert_equal "username",    Prowler.username
-      assert_equal "password",    Prowler.password
-    end
-
-    should "log a warning when using the deprecated API" do
-      Logger.any_instance.expects(:warn).with("The username/password API has been deprecated please switch to using an API key.")
-      Prowler.configure { |config| config.username = "username" }
-    end
-
-    should "not set a default username" do
-      assert_equal nil, Prowler.username
-    end
-
-    should "not set a default password" do
-      assert_equal nil, Prowler.password
-    end
-
-    should "raise an exception if not configured" do
-      assert_raises RuntimeError do
-        Prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
-      end
-    end
-  end
-
   context "Sending a notification" do
     setup do
       Prowler.reset_configuration

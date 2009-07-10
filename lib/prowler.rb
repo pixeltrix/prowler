@@ -45,7 +45,6 @@ require 'net/https'
 module Prowler
 
   API_PATH = "/publicapi/add"
-  DEPRECATED_API_PATH = "/api/add_notification.php?application=%s&event=%s&description=%s"
   VERIFY_PATH = "/publicapi/verify?apikey=%s"
   USER_AGENT = "Prowler/1.0.3"
 
@@ -59,7 +58,7 @@ module Prowler
 
   class << self
     attr_accessor :host, :port, :secure
-    attr_accessor :api_key, :username, :password
+    attr_accessor :api_key
     attr_accessor :application, :send_notifications
 
     # The host to connect to.
@@ -82,11 +81,6 @@ module Prowler
       yield self
     end
 
-    def username=(value) #:nodoc:
-      logger.warn "The username/password API has been deprecated please switch to using an API key."
-      @username = value
-    end
-
     # Whether to send notifications
     def send_notifications
       @send_notifications.nil? ? true : !!@send_notifications
@@ -100,7 +94,7 @@ module Prowler
 
     # Whether the library has been configured
     def configured?
-      !@application.nil? && (!@api_key.nil? || !(@username.nil? || @password.nil?))
+      !@application.nil? && !@api_key.nil?
     end
 
     # Returns the default logger or a logger that prints to STDOUT.
@@ -126,13 +120,8 @@ module Prowler
         }
         http.read_timeout = 5 # seconds
         http.open_timeout = 2 # seconds
-        if api_key
-          request = Net::HTTP::Post.new(API_PATH, headers)
-          request.set_form_data({ 'apikey' => api_key, 'priority' => priority, 'application' => application, 'event' => event, 'description' => message })
-        else
-          request = Net::HTTP::Get.new(sprintf(DEPRECATED_API_PATH, URI.escape(application), URI.escape(event), URI.escape(message)), headers)
-          request.basic_auth(username, password)
-        end
+        request = Net::HTTP::Post.new(API_PATH, headers)
+        request.set_form_data({ 'apikey' => api_key, 'priority' => priority, 'application' => application, 'event' => event, 'description' => message })
         response = begin
                      http.request(request) if send_notifications?
                    rescue TimeoutError => e
