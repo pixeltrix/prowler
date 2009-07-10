@@ -78,7 +78,7 @@ class Prowler
     attr_accessor :api_key, :provider_key, :application
     attr_accessor :event, :message, :priority
 
-    def initialize
+    def initialize #:nodoc:
       yield self if block_given?
     end
 
@@ -92,7 +92,7 @@ class Prowler
   class << self
     attr_accessor :api_key, :provider_key
     attr_accessor :application, :send_notifications
-    attr_accessor :read_timeout, :open_timeout
+    attr_accessor :read_timeout, :open_timeout #:nodoc:
     attr_accessor :delayed
 
     # Call this method to configure your account details in an initializer.
@@ -100,14 +100,11 @@ class Prowler
       yield self
     end
 
-    # Whether to send notifications
-    def send_notifications
+    def send_notifications #:nodoc:
       @send_notifications.nil? ? true : !!@send_notifications
     end
-    alias :send_notifications? :send_notifications
 
-    # Whether to use Delayed::Job to send notifications
-    def delayed
+    def delayed #:nodoc:
       @delayed.nil? ? false : !!@delayed
     end
 
@@ -213,7 +210,7 @@ class Prowler
         http.open_timeout = open_timeout
         http.start do
           begin
-            return true unless send_notifications?
+            return true unless send_notifications
             response = http.request(request)
             case response
             when Net::HTTPSuccess then
@@ -231,8 +228,8 @@ class Prowler
       end
   end
 
-  attr_accessor :api_key, :provider_key
-  attr_accessor :application, :send_notifications
+  attr_accessor :api_key, :provider_key #:nodoc:
+  attr_accessor :application, :send_notifications #:nodoc:
 
   # Create an instance for sending to different accounts within a single Rails application
   # * api_key:      Your API key.
