@@ -55,9 +55,12 @@ module Prowler
     EMERGENCY = 2
   end
 
+  class ConfigurationError < StandardError; end
+
   class << self
     attr_accessor :api_key
     attr_accessor :application, :send_notifications
+    attr_accessor :read_timeout, :open_timeout
 
     # Call this method to configure your account details in an initializer.
     def configure
@@ -87,72 +90,89 @@ module Prowler
       @logger ||= Logger.new(STDERR)
     end
 
+    def read_timeout #:nodoc:
+      @read_timeout ||= 5
+    end
+
+    def open_timeout #:nodoc:
+      @open_timeout ||= 2
+    end
+
     # Send a notification to your iPhone:
     # * event:    The title of notification you want to send.
     # * message:  The text of the notification message you want to send.
     # * priority: The priority of the notification - see Prowler::Priority. (Optional)
     def notify(event, message, priority = Priority::NORMAL)
-      raise RuntimeError, "Prowler needs to be configured first before using it" unless configured?
-
-      url = URI.parse(SERVICE_URL)
-      http = Net::HTTP.new(url.host, url.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-      http.start do
-        headers = {
-          'User-Agent' => USER_AGENT
+      raise ConfigurationError, "You must provide an API key to send notifications" if api_key.nil?
+      raise ConfigurationError, "You must provide an application name to send notifications" if application.nil?
+      perform(
+        :add, api_key,
+        {
+          :application => application,
+          :event => event,
+          :description => message,
+          :priority => priority
         }
-        http.read_timeout = 5 # seconds
-        http.open_timeout = 2 # seconds
-        request = Net::HTTP::Post.new("#{url.path}/add", headers)
-        request.set_form_data({ 'apikey' => api_key, 'priority' => priority, 'application' => application, 'event' => event, 'description' => message })
-        response = begin
-                     http.request(request) if send_notifications?
-                   rescue TimeoutError => e
-                     logger.error "Timeout while contacting the Prowl server."
-                     nil
-                   end
-        case response
-        when Net::HTTPSuccess then
-          logger.info "Prowl Success: #{response.class}"
-        when NilClass then
-          # Do nothing
-        else
-          logger.error "Prowl Failure: #{response.class}\n#{response.body if response.respond_to? :body}"
-        end
-      end
+      )
     end
 
     # Verify the configured API key is valid
     def verify
-      raise RuntimeError, "Prowler needs to be configured first before using it" unless api_key
+      raise ConfigurationError, "You must provide an API key to verify" if api_key.nil?
+      perform(:verify, api_key, provider_key, {}, :get)
+    end
 
-      url = URI.parse(SERVICE_URL)
-      http = Net::HTTP.new(url.host, url.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-      http.start do
-        headers = {
-          'User-Agent' => USER_AGENT
-        }
-        http.read_timeout = 5 # seconds
-        http.open_timeout = 2 # seconds
-        request = Net::HTTP::Get.new("#{url.path}/verify?apikey=#{api_key}", headers)
-        response = begin
-                     http.request(request) if send_notifications?
-                   rescue TimeoutError => e
-                     logger.error "Timeout while contacting the Prowl server."
-                     nil
-                   end
-        case response
-        when Net::HTTPSuccess then
-          logger.info "Prowl Success: #{response.class}"
-          true
-        else
-          logger.error "Prowl Failure: #{response.class}\n#{response.body if response.respond_to? :body}"
-          false
-        end
+    def perform(command, api_key, data = {}, method = :post) #:nodoc:
+      params = { :apikey => api_key }.merge(data).delete_if { |k,v| v.nil? }
+      case method
+      when :post
+        perform_post(command, params)
+      else
+        perform_get(command, params)
       end
     end
+
+    private
+      def headers(extra_headers = {}) #:nodoc:
+        { 'User-Agent' => USER_AGENT }.merge(extra_headers)
+      end
+
+      def perform_get(command, params) #:nodoc:
+        url = URI.parse("#{SERVICE_URL}/#{command}?#{params.map{ |k,v| %(#{URI.encode(k.to_s)}=#{URI.encode(v.to_s)}) }.join('&')}")
+        request = Net::HTTP::Get.new("#{url.path}?#{url.query}", headers)
+        perform_request(url, request)
+      end
+
+      def perform_post(command, params) #:nodoc:
+        url = URI.parse("#{SERVICE_URL}/#{command}")
+        request = Net::HTTP::Post.new(url.path, headers)
+        request.form_data = params
+        perform_request(url, request)
+      end
+
+      def perform_request(url, request) #:nodoc:
+        http = Net::HTTP.new(url.host, url.port)
+        http.use_ssl = true
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        http.read_timeout = read_timeout
+        http.open_timeout = open_timeout
+        http.start do
+          begin
+            return true unless send_notifications?
+            response = http.request(request)
+            case response
+            when Net::HTTPSuccess then
+              logger.info "Prowl Success: #{response.class}"
+              true
+            else
+              logger.error "Prowl Failure: #{response.class}\n#{response.body if response.respond_to? :body}"
+              false
+            end
+          rescue TimeoutError => e
+            logger.error "Timeout while contacting the Prowl server."
+            false
+          end
+        end
+      end
   end
 end

@@ -30,7 +30,7 @@ class ProwlerTest < Test::Unit::TestCase
     end
 
     should "raise an exception if not configured" do
-      assert_raises RuntimeError do
+      assert_raises Prowler::ConfigurationError do
         Prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
       end
     end
