@@ -29,6 +29,12 @@
 #
 #   Prowler.notify "Event", "Description", Prowler::Priority::NORMAL
 #
+# If you need to send to multiple accounts from within a single application you
+# can create an instance of the Prowler class to override the global settings, e.g.
+#
+#   prowler = Prowler.new('apikey', 'application')
+#   prowler.notify "Event", "Description", Prowler::Priority::NORMAL
+#
 # === About
 #
 # Prowler relies upon the Prowl iPhone application which is advertised as
