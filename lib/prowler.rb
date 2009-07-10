@@ -42,7 +42,7 @@ require 'logger'
 require 'net/https'
 require 'uri'
 
-module Prowler
+class Prowler
 
   SERVICE_URL = "https://prowl.weks.net/publicapi"
   USER_AGENT = "Prowler/1.0.3"
@@ -174,5 +174,40 @@ module Prowler
           end
         end
       end
+  end
+
+  attr_accessor :api_key, :provider_key
+  attr_accessor :application, :send_notifications
+
+  # Create an instance for sending to different accounts within a single Rails application
+  # * api_key:      Your API key.
+  # * application:  The name of your application.
+  # * provider_key: Key to override the rate limit of 1000 requests per hour. (Optional)
+  def initialize(api_key, application, provider_key = nil)
+    @api_key, @application, @provider_key = api_key, application, provider_key
+  end
+
+  # Send a notification to your iPhone:
+  # * event:    The title of notification you want to send.
+  # * message:  The text of the notification message you want to send.
+  # * priority: The priority of the notification - see Prowler::Priority. (Optional)
+  def notify(event, message, priority = Priority::NORMAL)
+    raise ConfigurationError, "You must provide an API key to send notifications" if api_key.nil?
+    raise ConfigurationError, "You must provide an application name to send notifications" if application.nil?
+    self.class.perform(
+      :add, api_key, provider_key,
+      {
+        :application => application,
+        :event => event,
+        :description => message,
+        :priority => priority
+      }
+    )
+  end
+
+  # Verify the configured API key is valid
+  def verify
+    raise ConfigurationError, "You must provide an API key to verify" if api_key.nil?
+    self.class.perform(:verify, api_key, provider_key, {}, :get)
   end
 end

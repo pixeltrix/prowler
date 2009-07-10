@@ -29,10 +29,10 @@ class ProwlerTest < Test::Unit::TestCase
       assert_equal nil, Prowler.api_key
     end
 
-    should "raise an exception if not configured" do
-      assert_raises Prowler::ConfigurationError do
-        Prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
-      end
+    should "override class configuration when using an instance" do
+      prowler = Prowler.new("apikey2", "application2")
+      assert_equal "apikey2",      prowler.api_key
+      assert_equal "application2", prowler.application
     end
   end
 
@@ -46,6 +46,33 @@ class ProwlerTest < Test::Unit::TestCase
       Prowler.send_notifications = false
     end
 
+    should "raise an exception if API key not configured" do
+      Prowler.reset_configuration
+      assert_raises Prowler::ConfigurationError do
+        Prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
+      end
+
+      prowler = Prowler.new(nil, nil)
+      assert_raises Prowler::ConfigurationError do
+        prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
+      end
+    end
+
+    should "raise an exception if application not configured" do
+      Prowler.reset_configuration
+      Prowler.configure do |config|
+        config.api_key = "apikey"
+      end
+      assert_raises Prowler::ConfigurationError do
+        Prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
+      end
+
+      prowler = Prowler.new("apikey", nil)
+      assert_raises Prowler::ConfigurationError do
+        prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
+      end
+    end
+
     should "not verify SSL certificates" do
       Net::HTTP.any_instance.expects(:use_ssl=).with(true)
       Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_NONE)
@@ -55,6 +82,40 @@ class ProwlerTest < Test::Unit::TestCase
     should "not send notifications if send_notifications is false" do
       Net::HTTP.any_instance.expects(:request).never
       Prowler.notify("Event Name", "Message Text", Prowler::Priority::NORMAL)
+    end
+  end
+
+  context "Verifying an API key" do
+    setup do
+      Prowler.reset_configuration
+      Prowler.configure do |config|
+        config.api_key = "apikey"
+        config.application = "Application Name"
+      end
+      Prowler.send_notifications = false
+    end
+
+    should "raise an exception if API key not configured" do
+      Prowler.reset_configuration
+      assert_raises Prowler::ConfigurationError do
+        Prowler.verify
+      end
+
+      prowler = Prowler.new(nil, nil)
+      assert_raises Prowler::ConfigurationError do
+        prowler.verify
+      end
+    end
+
+    should "not verify SSL certificates" do
+      Net::HTTP.any_instance.expects(:use_ssl=).with(true)
+      Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_NONE)
+      Prowler.verify
+    end
+
+    should "not send notifications if send_notifications is false" do
+      Net::HTTP.any_instance.expects(:request).never
+      Prowler.verify
     end
   end
 end
