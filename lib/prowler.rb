@@ -39,13 +39,12 @@
 # For more about the Prowl application see: http://prowl.weks.net/
 
 require 'logger'
-require 'net/http'
 require 'net/https'
+require 'uri'
 
 module Prowler
 
-  API_PATH = "/publicapi/add"
-  VERIFY_PATH = "/publicapi/verify?apikey=%s"
+  SERVICE_URL = "https://prowl.weks.net/publicapi"
   USER_AGENT = "Prowler/1.0.3"
 
   module Priority
@@ -57,24 +56,8 @@ module Prowler
   end
 
   class << self
-    attr_accessor :host, :port, :secure
     attr_accessor :api_key
     attr_accessor :application, :send_notifications
-
-    # The host to connect to.
-    def host
-      @host ||= 'prowl.weks.net'
-    end
-
-    # The port on which the service runs.
-    def port
-      @port || (secure ? 443 : 80)
-    end
-
-    # Whether the service is running over SSL.
-    def secure
-      @secure.nil? ? true : !!@secure
-    end
 
     # Call this method to configure your account details in an initializer.
     def configure
@@ -89,7 +72,7 @@ module Prowler
 
     # Reset configuration
     def reset_configuration
-      @host = @port = @secure = @application = @username = @password = @api_key = nil
+      @application = @api_key = nil
     end
 
     # Whether the library has been configured
@@ -111,8 +94,9 @@ module Prowler
     def notify(event, message, priority = Priority::NORMAL)
       raise RuntimeError, "Prowler needs to be configured first before using it" unless configured?
 
-      http = Net::HTTP.new(host, port)
-      http.use_ssl = secure
+      url = URI.parse(SERVICE_URL)
+      http = Net::HTTP.new(url.host, url.port)
+      http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
       http.start do
         headers = {
@@ -120,7 +104,7 @@ module Prowler
         }
         http.read_timeout = 5 # seconds
         http.open_timeout = 2 # seconds
-        request = Net::HTTP::Post.new(API_PATH, headers)
+        request = Net::HTTP::Post.new("#{url.path}/add", headers)
         request.set_form_data({ 'apikey' => api_key, 'priority' => priority, 'application' => application, 'event' => event, 'description' => message })
         response = begin
                      http.request(request) if send_notifications?
@@ -143,8 +127,9 @@ module Prowler
     def verify
       raise RuntimeError, "Prowler needs to be configured first before using it" unless api_key
 
-      http = Net::HTTP.new(host, port)
-      http.use_ssl = secure
+      url = URI.parse(SERVICE_URL)
+      http = Net::HTTP.new(url.host, url.port)
+      http.use_ssl = true
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
       http.start do
         headers = {
@@ -152,7 +137,7 @@ module Prowler
         }
         http.read_timeout = 5 # seconds
         http.open_timeout = 2 # seconds
-        request = Net::HTTP::Get.new(sprintf(VERIFY_PATH, api_key), headers)
+        request = Net::HTTP::Get.new("#{url.path}/verify?apikey=#{api_key}", headers)
         response = begin
                      http.request(request) if send_notifications?
                    rescue TimeoutError => e

@@ -13,30 +13,12 @@ class ProwlerTest < Test::Unit::TestCase
 
     should "be done with a block" do
       Prowler.configure do |config|
-        config.host = "prowler"
-        config.port = 666
-        config.secure = false
         config.api_key = "apikey"
         config.application = "application"
       end
 
-      assert_equal "prowler",     Prowler.host
-      assert_equal 666,           Prowler.port
-      assert_equal false,         Prowler.secure
       assert_equal "apikey",      Prowler.api_key
       assert_equal "application", Prowler.application
-    end
-
-    should "set a default host" do
-      assert_equal "prowl.weks.net", Prowler.host
-    end
-
-    should "set a default port" do
-      assert_equal 443, Prowler.port
-    end
-
-    should "default to secure" do
-      assert_equal true, Prowler.secure
     end
 
     should "not set a default application" do
