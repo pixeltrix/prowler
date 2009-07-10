@@ -62,7 +62,7 @@ require 'uri'
 class Prowler
 
   SERVICE_URL = "https://prowl.weks.net/publicapi"
-  USER_AGENT = "Prowler/1.0.3"
+  USER_AGENT = "Prowler/1.1.0"
 
   module Priority
     VERY_LOW  = -2
