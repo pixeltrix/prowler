@@ -94,7 +94,7 @@ class Prowler
     attr_accessor :api_key, :provider_key
     attr_accessor :application, :send_notifications
     attr_accessor :read_timeout, :open_timeout #:nodoc:
-    attr_accessor :delayed
+    attr_accessor :delayed, :verify_certificate, :root_certificates
 
     # Call this method to configure your account details in an initializer.
     def configure
@@ -112,11 +112,23 @@ class Prowler
     # Reset configuration
     def reset_configuration
       @application = @api_key = @provider_key = nil
+      @delayed = @verify_certificate = @root_certificates = nil
     end
 
     # Whether the library has been configured
     def configured?
       !@application.nil? && !@api_key.nil?
+    end
+
+    # Whether to verify the server's SSL certificate
+    def verify_certificate?
+      @verify_certificate ||= false
+    end
+
+    # Location of the root certificates file
+    # Default: RAILS_ROOT/config/cacert.pem
+    def root_certificates
+      @root_certificates ||= File.join(RAILS_ROOT, "config", "cacert.pem")
     end
 
     # Returns the default logger or a logger that prints to STDOUT.
@@ -206,7 +218,12 @@ class Prowler
       def perform_request(url, request) #:nodoc:
         http = Net::HTTP.new(url.host, url.port)
         http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        if verify_certificate?
+          http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+          http.ca_file = root_certificates
+        else
+          http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        end
         http.read_timeout = read_timeout
         http.open_timeout = open_timeout
         http.start do

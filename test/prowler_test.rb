@@ -4,6 +4,8 @@ require 'mocha'
 require 'shoulda'
 require File.join(File.dirname(__FILE__), "..", "lib", "prowler")
 
+RAILS_ROOT = File.dirname(__FILE__)
+
 class ProwlerTest < Test::Unit::TestCase
   context "Prowler configuration" do
     setup do
@@ -73,9 +75,19 @@ class ProwlerTest < Test::Unit::TestCase
       end
     end
 
-    should "not verify SSL certificates" do
+    should "not verify SSL certificates by default" do
       Net::HTTP.any_instance.expects(:use_ssl=).with(true)
       Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_NONE)
+      Prowler.notify("Event Name", "Message Text", Prowler::Priority::NORMAL)
+    end
+
+    should "verify SSL certificates if verification is turned on" do
+      Prowler.configure do |config|
+        config.verify_certificate = true
+      end
+      Net::HTTP.any_instance.expects(:use_ssl=).with(true)
+      Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_PEER)
+      Net::HTTP.any_instance.expects(:ca_file=).with(File.join(RAILS_ROOT, "config", "cacert.pem"))
       Prowler.notify("Event Name", "Message Text", Prowler::Priority::NORMAL)
     end
 
@@ -129,9 +141,19 @@ class ProwlerTest < Test::Unit::TestCase
       Prowler.verify
     end
 
-    should "not verify SSL certificates" do
+    should "not verify SSL certificates by default" do
       Net::HTTP.any_instance.expects(:use_ssl=).with(true)
       Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_NONE)
+      Prowler.verify
+    end
+
+    should "verify SSL certificates if verification is turned on" do
+      Prowler.configure do |config|
+        config.verify_certificate = true
+      end
+      Net::HTTP.any_instance.expects(:use_ssl=).with(true)
+      Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_PEER)
+      Net::HTTP.any_instance.expects(:ca_file=).with(File.join(RAILS_ROOT, "config", "cacert.pem"))
       Prowler.verify
     end
 
