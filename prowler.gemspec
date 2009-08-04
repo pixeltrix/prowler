@@ -2,11 +2,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{prowler}
-  s.version = "1.1.0"
+  s.version = "1.1.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Andrew White"]
-  s.date = %q{2009-07-10}
+  s.date = %q{2009-08-04}
   s.description = %q{A simple wrapper class that provides basic access to the Prowl API.}
   s.email = %q{andyw@pixeltrix.co.uk}
   s.extra_rdoc_files = [
@@ -23,6 +23,7 @@ Gem::Specification.new do |s|
      "lib/prowler.rb",
      "prowler.gemspec",
      "tasks/prowler.rake",
+     "test/config/cacert.pem",
      "test/prowler_test.rb"
   ]
   s.has_rdoc = true
