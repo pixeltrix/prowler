@@ -83,6 +83,20 @@ class ProwlerTest < Test::Unit::TestCase
       Net::HTTP.any_instance.expects(:request).never
       Prowler.notify("Event Name", "Message Text", Prowler::Priority::NORMAL)
     end
+
+    should "send multiple API keys if configured" do
+      Prowler.configure do |config|
+        config.api_key = %w(apikey1 apikey2)
+      end
+      Net::HTTP::Post.any_instance.expects(:form_data=).with({
+        :apikey => "apikey1,apikey2",
+        :application => "Application Name",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::NORMAL
+      })
+      Prowler.notify("Event Name", "Message Text", Prowler::Priority::NORMAL)
+    end
   end
 
   context "Verifying an API key" do
@@ -105,6 +119,14 @@ class ProwlerTest < Test::Unit::TestCase
       assert_raises Prowler::ConfigurationError do
         prowler.verify
       end
+    end
+
+    should "only verify the first API key" do
+      Prowler.configure do |config|
+        config.api_key = %w(apikey1 apikey2)
+      end
+      Net::HTTP::Get.expects(:new).with("/publicapi/verify?apikey=apikey1", { 'User-Agent' => Prowler::USER_AGENT }).once
+      Prowler.verify
     end
 
     should "not verify SSL certificates" do

@@ -63,6 +63,7 @@ class Prowler
 
   SERVICE_URL = "https://prowl.weks.net/publicapi"
   USER_AGENT = "Prowler/1.1.0"
+  MULTIPLE_APIKEY_COMMANDS = %w(add)
 
   module Priority
     VERY_LOW  = -2
@@ -163,7 +164,7 @@ class Prowler
     end
 
     def perform(command, api_key, provider_key, data = {}, method = :post) #:nodoc:
-      params = { :apikey => api_key, :provider_key => provider_key }.merge(data).delete_if { |k,v| v.nil? }
+      params = { :apikey => format_api_key(command, api_key), :provider_key => provider_key }.merge(data).delete_if { |k,v| v.nil? }
       case method
       when :post
         perform_post(command, params)
@@ -224,6 +225,14 @@ class Prowler
             logger.error "Timeout while contacting the Prowl server."
             false
           end
+        end
+      end
+
+      def format_api_key(command, api_key)
+        if api_key.is_a?(Array)
+          MULTIPLE_APIKEY_COMMANDS.include?(command.to_s) ? api_key.join(",") : api_key.first.to_s
+        else
+          api_key.to_s
         end
       end
   end
