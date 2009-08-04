@@ -125,7 +125,7 @@ class Prowler
       @verify_certificate ||= false
     end
 
-    # Location of the root certificates file
+    # Location of the root certificates file.
     # Default: RAILS_ROOT/config/cacert.pem
     def root_certificates
       @root_certificates ||= File.join(RAILS_ROOT, "config", "cacert.pem")
