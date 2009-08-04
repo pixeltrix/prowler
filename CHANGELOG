@@ -1,3 +1,10 @@
+*1.1.1 (August 4th, 2009)
+
+* Add support for verifying server certificate
+
+* Add support for passing multiple API keys
+
+
 *1.1.0 (July 10th, 2009)
 
 * Add support for Delayed::Job background processing
