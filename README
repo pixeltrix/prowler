@@ -1,13 +1,28 @@
 Prowler
 =======
 
-This is a plugin for integrating apps with the Prowl iPhone application.
+This is a plugin/gem for integrating apps with the Prowl iPhone application.
 
 INSTALLATION
 
-From your project's RAILS_ROOT, run:
+To install as a plugin from your project's RAILS_ROOT, run:
 
+Rails 2.x:
   script/plugin install git://github.com/pixeltrix/prowler.git
+
+Rails 3.x:
+  script/rails plugin install git://github.com/pixeltrix/prowler.git
+
+To install as a gem configure your config.gems or Gemfile:
+
+Rails 2.x:
+  config.gems 'prowler', :version => '~> 1.1'
+
+Rails 3.x:
+  gem 'prowler', '~> 1.1'
+
+Prowler is not limited to Rails apps - it can be used in any situation
+where you need to send push notifications to your iPhone.
 
 CONFIGURATION
 
@@ -30,13 +45,13 @@ USAGE
 
 To use Prowler within your application just call the notify method, e.g.
 
-  Prowler.notify "Event", "Description", Prowler::Priority::NORMAL
+  Prowler.notify "Event", "Description"
 
 If you need to send to multiple accounts from within a single application you
 can create an instance of the Prowler class to override the global settings, e.g.
 
   prowler = Prowler.new('apikey', 'application')
-  prowler.notify "Event", "Description", Prowler::Priority::NORMAL
+  prowler.notify "Event", "Description"
 
 If performance is a concern then there is built in support for Delayed::Job.
 This can done either on a global basis, e.g.
@@ -47,7 +62,7 @@ This can done either on a global basis, e.g.
 
 or on a individual message basis, e.g.
 
-  Prowler.notify "Event", "Description", Prowler::Priority::NORMAL, true
+  Prowler.notify "Event", "Description", :delayed => true
 
 ABOUT
 

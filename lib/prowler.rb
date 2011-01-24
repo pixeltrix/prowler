@@ -86,7 +86,11 @@ class Prowler
     # Send notification
     def perform
       prowler = Prowler.new(api_key, application, provider_key)
-      prowler.notify(event, message, priority, false)
+      prowler.notify(event, message, options)
+    end
+
+    def options
+      { :priority => priority, :delayed => false }
     end
   end
 
@@ -163,22 +167,35 @@ class Prowler
     # Send a notification to your iPhone:
     # * event:    The title of notification you want to send.
     # * message:  The text of the notification message you want to send.
-    # * priority: The priority of the notification - see Prowler::Priority. (Optional)
-    # * delayed:  Whether to use Delayed::Job to send notifications. (Optional)
-    def notify(event, message, priority = Priority::NORMAL, delayed = self.delayed)
+    #
+    # The following options are supported:
+    # * +:delayed+:  Whether to use Delayed::Job to send notifications. (Optional)
+    # * +:priority+: The priority of the notification - see Prowler::Priority. (Optional)
+    def notify(event, message, *args)
       raise ConfigurationError, "You must provide an API key to send notifications" if api_key.nil?
       raise ConfigurationError, "You must provide an application name to send notifications" if application.nil?
-      if delayed
-        enqueue_delayed_job(self, event, message, priority)
+
+      if args.first.is_a?(Hash)
+        options = args.first
+        options[:priority] ||= Priority::NORMAL
+        options[:delayed] ||= delayed
+      else
+        options = {
+          :priority => args.shift || Priority::NORMAL,
+          :delayed => args.shift || delayed
+        }
+      end
+
+      if options.delete(:delayed)
+        enqueue_delayed_job(self, event, message, options)
       else
         perform(
           :add, api_key, provider_key,
-          {
+          options.merge({
             :application => application,
             :event => event,
-            :description => message,
-            :priority => priority
-          }
+            :description => message
+          })
         )
       end
     end
@@ -199,14 +216,14 @@ class Prowler
       end
     end
 
-    def enqueue_delayed_job(config, event, message, priority) #:nodoc:
+    def enqueue_delayed_job(config, event, message, options) #:nodoc:
       record = Delayed::Job.enqueue(DelayedJob.new do |job|
         job.api_key = config.api_key
         job.provider_key = config.provider_key
         job.application = config.application
         job.event = event
         job.message = message
-        job.priority = priority
+        job.priority = options[:priority] || Priority::NORMAL
       end)
       !record.new_record?
     end
@@ -282,22 +299,35 @@ class Prowler
   # Send a notification to your iPhone:
   # * event:    The title of notification you want to send.
   # * message:  The text of the notification message you want to send.
-  # * priority: The priority of the notification - see Prowler::Priority. (Optional)
-  # * delayed:  Whether to use Delayed::Job to send notifications. (Optional)
-  def notify(event, message, priority = Priority::NORMAL, delayed = self.class.delayed)
+  #
+  # The following options are supported:
+  # * +:delayed+:  Whether to use Delayed::Job to send notifications. (Optional)
+  # * +:priority+: The priority of the notification - see Prowler::Priority. (Optional)
+  def notify(event, message, *args)
     raise ConfigurationError, "You must provide an API key to send notifications" if api_key.nil?
     raise ConfigurationError, "You must provide an application name to send notifications" if application.nil?
-    if delayed
-      self.class.enqueue_delayed_job(self, event, message, priority)
+
+    if args.first.is_a?(Hash)
+      options = args.first
+      options[:priority] ||= Priority::NORMAL
+      options[:delayed] ||= self.class.delayed
+    else
+      options = {
+        :priority => args.shift || Priority::NORMAL,
+        :delayed => args.shift || self.class.delayed
+      }
+    end
+
+    if options.delete(:delayed)
+      self.class.enqueue_delayed_job(self, event, message, options)
     else
       self.class.perform(
         :add, api_key, provider_key,
-        {
+        options.merge({
           :application => application,
           :event => event,
-          :description => message,
-          :priority => priority
-        }
+          :description => message
+        })
       )
     end
   end

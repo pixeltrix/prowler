@@ -122,6 +122,21 @@ class ProwlerTest < Test::Unit::TestCase
         request.to_return(:status => 500, :body => "", :headers => {})
       end
     end
+
+    should "delay sending if configured globally" do
+      Prowler.delayed = true
+      assert_delayed Prowler, "Event Name", "Message Text"
+    end
+
+    should "delay sending using deprecated parameter" do
+      Prowler.delayed = false
+      assert_delayed Prowler, "Event Name", "Message Text", Prowler::Priority::NORMAL, true
+    end
+
+    should "delay sending using options" do
+      Prowler.delayed = false
+      assert_delayed Prowler, "Event Name", "Message Text", :delayed => true
+    end
   end
 
   context "Verifying an API key" do
@@ -229,13 +244,35 @@ class ProwlerTest < Test::Unit::TestCase
         request.to_return(:status => 200, :body => "", :headers => {})
       end
 
-      config.notify event, message
+      config.notify event, message, options
       assert_requested :post, notify_url, :body => body
     end
 
     def assert_not_notified(config, event, message, options = {})
       config.notify event, message
       assert_not_requested :post, notify_url, :body => build_request(config, event, message, options)
+    end
+
+    def assert_delayed(config, event, message, *args, &block)
+      if args.first.is_a?(Hash) || args.empty?
+        options = args.first || {}
+        delayed = options.delete(:delayed)
+        options[:priority] ||= Prowler::Priority::NORMAL
+
+        Prowler.expects(:enqueue_delayed_job).with(Prowler, "Event Name", "Message Text", options)
+        config.notify event, message, options.merge(:delayed => delayed)
+      else
+        priority = args.shift
+        delayed = args.shift
+        options = { :priority => priority }
+
+        Prowler.expects(:enqueue_delayed_job).with(Prowler, "Event Name", "Message Text", options)
+        config.notify event, message, priority, delayed
+      end
+
+      if delayed
+        assert_not_requested :post, notify_url, :body => build_request(config, event, message, options)
+      end
     end
 
 end
