@@ -113,6 +113,7 @@ class Prowler
     def reset_configuration
       @application = @api_key = @provider_key = nil
       @delayed = @verify_certificate = @root_certificates = nil
+      @send_notifications = @read_timeout = @open_timeout = nil
     end
 
     # Whether the library has been configured
