@@ -1,3 +1,6 @@
+* Verify SSL certificates by default
+
+
 *1.1.1 (August 4th, 2009)
 
 * Add support for verifying server certificate

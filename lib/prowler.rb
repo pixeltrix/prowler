@@ -122,7 +122,7 @@ class Prowler
 
     # Whether to verify the server's SSL certificate
     def verify_certificate?
-      @verify_certificate ||= false
+      @verify_certificate.nil? ? true : @verify_certificate
     end
 
     # Location of the root certificates file.
