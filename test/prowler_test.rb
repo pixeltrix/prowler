@@ -5,7 +5,16 @@ require 'shoulda'
 require 'webmock/test_unit'
 require File.expand_path('../../lib/prowler', __FILE__)
 
+class FakeLogger
+  def info(*args); end
+  def debug(*args); end
+  def warn(*args); end
+  def error(*args); end
+  def fatal(*args); end
+end
+
 RAILS_ROOT = File.dirname(__FILE__)
+RAILS_DEFAULT_LOGGER = FakeLogger.new
 
 class ProwlerTest < Test::Unit::TestCase
   context "Prowler configuration" do
@@ -100,6 +109,18 @@ class ProwlerTest < Test::Unit::TestCase
     should "send multiple API keys if configured" do
       Prowler.api_key = %w(apikey1 apikey2)
       assert_notified Prowler, "Event Name", "Message Text"
+    end
+
+    should "log a successful response" do
+      Prowler.logger.expects(:info).with("Prowl Success: Net::HTTPOK")
+      assert_notified Prowler, "Event Name", "Message Text"
+    end
+
+    should "log an error response" do
+      Prowler.logger.expects(:error).with("Prowl Failure: Net::HTTPInternalServerError\n")
+      assert_notified Prowler, "Event Name", "Message Text" do |request|
+        request.to_return(:status => 500, :body => "", :headers => {})
+      end
     end
   end
 

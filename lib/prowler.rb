@@ -134,9 +134,22 @@ class Prowler
 
     # Returns the default logger or a logger that prints to STDOUT.
     def logger
-      ActiveRecord::Base.logger
-    rescue
-      @logger ||= Logger.new(STDERR)
+      @logger ||= rails_logger
+    end
+
+    # Override the default logger
+    def logger=(new_logger)
+      @logger = new_logger
+    end
+
+    def rails_logger #:nodoc
+      if defined?(Rails.logger)
+        Rails.logger
+      elsif defined?(RAILS_DEFAULT_LOGGER)
+        RAILS_DEFAULT_LOGGER
+      else
+        Logger.new(STDERR)
+      end
     end
 
     def read_timeout #:nodoc:
