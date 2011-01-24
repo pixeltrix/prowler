@@ -141,6 +141,14 @@ class ProwlerTest < Test::Unit::TestCase
     should "send a custom url" do
       assert_notified Prowler, "Event Name", "Message Text", :url => "http://www.pixeltrix.co.uk"
     end
+
+    should "send with a high priority using deprecated parameter" do
+      assert_notified Prowler, "Event Name", "Message Text", Prowler::Priority::HIGH
+    end
+
+    should "send with a high priority using options" do
+      assert_notified Prowler, "Event Name", "Message Text", :priority => Prowler::Priority::HIGH
+    end
   end
 
   context "Verifying an API key" do
@@ -224,13 +232,17 @@ class ProwlerTest < Test::Unit::TestCase
 
     def build_request(config, event, message, options)
       body = {}
-      body["priority"] = (options[:priority] || Prowler::Priority::NORMAL).to_s
+      if options.is_a?(Hash)
+        body["priority"] = (options[:priority] || Prowler::Priority::NORMAL).to_s
+        body["url"] = options[:url] if options[:url]
+      else
+        body["priority"] = (options || Prowler::Priority::NORMAL).to_s
+      end
       body["application"] = config.application
       body["event"] = event
       body["apikey"] = Array(config.api_key).join(",")
       body["description"] = message
       body["providerkey"] = config.provider_key if config.provider_key
-      body["url"] = options[:url] if options[:url]
       body
     end
 
