@@ -2,7 +2,8 @@ require 'test/unit'
 require 'rubygems'
 require 'mocha'
 require 'shoulda'
-require File.join(File.dirname(__FILE__), "..", "lib", "prowler")
+require 'webmock/test_unit'
+require File.expand_path('../../lib/prowler', __FILE__)
 
 RAILS_ROOT = File.dirname(__FILE__)
 
@@ -10,7 +11,6 @@ class ProwlerTest < Test::Unit::TestCase
   context "Prowler configuration" do
     setup do
       Prowler.reset_configuration
-      Prowler.send_notifications = false
     end
 
     should "be done with a block" do
@@ -45,18 +45,17 @@ class ProwlerTest < Test::Unit::TestCase
         config.api_key = "apikey"
         config.application = "Application Name"
       end
-      Prowler.send_notifications = false
     end
 
     should "raise an exception if API key not configured" do
       Prowler.reset_configuration
       assert_raises Prowler::ConfigurationError do
-        Prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
+        Prowler.notify("Event", "Description")
       end
 
       prowler = Prowler.new(nil, nil)
       assert_raises Prowler::ConfigurationError do
-        prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
+        prowler.notify("Event", "Description")
       end
     end
 
@@ -79,35 +78,28 @@ class ProwlerTest < Test::Unit::TestCase
       Net::HTTP.any_instance.expects(:use_ssl=).with(true)
       Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_PEER)
       Net::HTTP.any_instance.expects(:ca_file=).with(File.join(RAILS_ROOT, "config", "cacert.pem"))
-      Prowler.notify("Event Name", "Message Text", Prowler::Priority::NORMAL)
+
+      Prowler.send_notifications = false
+      Prowler.notify("Event Name", "Message Text")
     end
 
     should "not verify SSL certificates if verification is turned off" do
-      Prowler.configure do |config|
-        config.verify_certificate = false
-      end
       Net::HTTP.any_instance.expects(:use_ssl=).with(true)
       Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_NONE)
-      Prowler.notify("Event Name", "Message Text", Prowler::Priority::NORMAL)
+
+      Prowler.send_notifications = false
+      Prowler.verify_certificate = false
+      Prowler.notify("Event Name", "Message Text")
     end
 
     should "not send notifications if send_notifications is false" do
-      Net::HTTP.any_instance.expects(:request).never
-      Prowler.notify("Event Name", "Message Text", Prowler::Priority::NORMAL)
+      Prowler.send_notifications = false
+      assert_not_notified Prowler, "Event Name", "Message Text"
     end
 
     should "send multiple API keys if configured" do
-      Prowler.configure do |config|
-        config.api_key = %w(apikey1 apikey2)
-      end
-      Net::HTTP::Post.any_instance.expects(:form_data=).with({
-        :apikey => "apikey1,apikey2",
-        :application => "Application Name",
-        :event => "Event Name",
-        :description => "Message Text",
-        :priority => Prowler::Priority::NORMAL
-      })
-      Prowler.notify("Event Name", "Message Text", Prowler::Priority::NORMAL)
+      Prowler.api_key = %w(apikey1 apikey2)
+      assert_notified Prowler, "Event Name", "Message Text"
     end
   end
 
@@ -118,7 +110,6 @@ class ProwlerTest < Test::Unit::TestCase
         config.api_key = "apikey"
         config.application = "Application Name"
       end
-      Prowler.send_notifications = false
     end
 
     should "raise an exception if API key not configured" do
@@ -129,37 +120,101 @@ class ProwlerTest < Test::Unit::TestCase
 
       prowler = Prowler.new(nil, nil)
       assert_raises Prowler::ConfigurationError do
-        prowler.verify
+        Prowler.verify
       end
     end
 
     should "only verify the first API key" do
-      Prowler.configure do |config|
-        config.api_key = %w(apikey1 apikey2)
-      end
-      Net::HTTP::Get.expects(:new).with("/publicapi/verify?apikey=apikey1", { 'User-Agent' => Prowler::USER_AGENT }).once
-      Prowler.verify
+      Prowler.api_key = %w(apikey1 apikey2)
+      assert_verified Prowler, "apikey1"
+    end
+
+    should "not send notifications if send_notifications is false" do
+      Prowler.send_notifications = false
+      assert_not_verified Prowler
     end
 
     should "verify SSL certificates by default" do
       Net::HTTP.any_instance.expects(:use_ssl=).with(true)
       Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_PEER)
       Net::HTTP.any_instance.expects(:ca_file=).with(File.join(RAILS_ROOT, "config", "cacert.pem"))
+
+      Prowler.send_notifications = false
       Prowler.verify
     end
 
     should "not verify SSL certificates if verification is turned off" do
-      Prowler.configure do |config|
-        config.verify_certificate = false
-      end
       Net::HTTP.any_instance.expects(:use_ssl=).with(true)
       Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_NONE)
-      Prowler.verify
-    end
 
-    should "not send notifications if send_notifications is false" do
-      Net::HTTP.any_instance.expects(:request).never
+      Prowler.send_notifications = false
+      Prowler.verify_certificate = false
       Prowler.verify
     end
   end
+
+  private
+    def verify_url
+      "https://prowl.weks.net/publicapi/verify"
+    end
+
+    def assert_verified(config, api_key = "apikey", &block)
+      request = stub_request(:get, "#{verify_url}?apikey=#{api_key}")
+      request.with(:headers => { "Accept" => "*/*" })
+      request.with(:headers => { "User-Agent" => Prowler::USER_AGENT })
+
+      if block_given?
+        yield request
+      else
+        request.to_return(:status => 200, :body => "", :headers => {})
+      end
+
+      config.verify
+      assert_requested :get, "#{verify_url}?apikey=#{api_key}"
+    end
+
+    def assert_not_verified(config, api_key = "apikey")
+      config.verify
+      assert_not_requested :get, "#{verify_url}?apikey=#{api_key}"
+    end
+
+    def notify_url
+      "https://prowl.weks.net/publicapi/add"
+    end
+
+    def build_request(config, event, message, options)
+      body = {}
+      body["priority"] = (options[:priority] || Prowler::Priority::NORMAL).to_s
+      body["application"] = config.application
+      body["event"] = event
+      body["apikey"] = Array(config.api_key).join(",")
+      body["description"] = message
+      body["providerkey"] = config.provider_key if config.provider_key
+      body
+    end
+
+    def assert_notified(config, event, message, options = {}, &block)
+      body = build_request(config, event, message, options)
+
+      request = stub_request(:post, notify_url)
+      request.with(:headers => { "Accept" => "*/*" })
+      request.with(:headers => { "User-Agent" => Prowler::USER_AGENT })
+      request.with(:headers => { "Content-Type" => "application/x-www-form-urlencoded" })
+      request.with(:body => body)
+
+      if block_given?
+        yield request
+      else
+        request.to_return(:status => 200, :body => "", :headers => {})
+      end
+
+      config.notify event, message
+      assert_requested :post, notify_url, :body => body
+    end
+
+    def assert_not_notified(config, event, message, options = {})
+      config.notify event, message
+      assert_not_requested :post, notify_url, :body => build_request(config, event, message, options)
+    end
+
 end
