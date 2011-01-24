@@ -137,6 +137,10 @@ class ProwlerTest < Test::Unit::TestCase
       Prowler.delayed = false
       assert_delayed Prowler, "Event Name", "Message Text", :delayed => true
     end
+
+    should "send a custom url" do
+      assert_notified Prowler, "Event Name", "Message Text", :url => "http://www.pixeltrix.co.uk"
+    end
   end
 
   context "Verifying an API key" do
@@ -226,6 +230,7 @@ class ProwlerTest < Test::Unit::TestCase
       body["apikey"] = Array(config.api_key).join(",")
       body["description"] = message
       body["providerkey"] = config.provider_key if config.provider_key
+      body["url"] = options[:url] if options[:url]
       body
     end
 

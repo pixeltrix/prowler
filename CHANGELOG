@@ -1,3 +1,5 @@
+* Add option for custom url
+
 * Optional parameters are deprecated in favor of an options hash
 
 * Verify SSL certificates by default

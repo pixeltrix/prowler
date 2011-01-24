@@ -77,7 +77,7 @@ class Prowler
 
   class DelayedJob
     attr_accessor :api_key, :provider_key, :application
-    attr_accessor :event, :message, :priority
+    attr_accessor :event, :message, :priority, :url
 
     def initialize #:nodoc:
       yield self if block_given?
@@ -90,7 +90,7 @@ class Prowler
     end
 
     def options
-      { :priority => priority, :delayed => false }
+      { :priority => priority, :url => url, :delayed => false }
     end
   end
 
@@ -171,6 +171,7 @@ class Prowler
     # The following options are supported:
     # * +:delayed+:  Whether to use Delayed::Job to send notifications. (Optional)
     # * +:priority+: The priority of the notification - see Prowler::Priority. (Optional)
+    # * +:url+:      A custom url for the Prowl application to open. (Optional)
     def notify(event, message, *args)
       raise ConfigurationError, "You must provide an API key to send notifications" if api_key.nil?
       raise ConfigurationError, "You must provide an application name to send notifications" if application.nil?
@@ -224,6 +225,7 @@ class Prowler
         job.event = event
         job.message = message
         job.priority = options[:priority] || Priority::NORMAL
+        job.url = options[:url]
       end)
       !record.new_record?
     end
@@ -303,6 +305,7 @@ class Prowler
   # The following options are supported:
   # * +:delayed+:  Whether to use Delayed::Job to send notifications. (Optional)
   # * +:priority+: The priority of the notification - see Prowler::Priority. (Optional)
+  # * +:url+:      A custom url for the Prowl application to open. (Optional)
   def notify(event, message, *args)
     raise ConfigurationError, "You must provide an API key to send notifications" if api_key.nil?
     raise ConfigurationError, "You must provide an application name to send notifications" if application.nil?
