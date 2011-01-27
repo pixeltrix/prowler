@@ -1,1 +1,1 @@
-require 'prowler/tasks'
+require File.expand_path('../../lib/prowler/tasks', __FILE__)
