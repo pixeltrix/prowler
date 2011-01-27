@@ -25,10 +25,10 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gemspec|
     gemspec.name = "prowler"
-    gemspec.summary = "Provides access to the Prowl API."
+    gemspec.summary = "Provides access to the Prowl API (http://prowlapp.com)."
     gemspec.email = "andyw@pixeltrix.co.uk"
     gemspec.homepage = "http://github.com/pixeltrix/prowler/"
-    gemspec.description = "A simple wrapper class that provides basic access to the Prowl API."
+    gemspec.description = "A simple wrapper class that provides basic access to the Prowl API (http://prowlapp.com)."
     gemspec.authors = ["Andrew White"]
   end
   Jeweler::GemcutterTasks.new

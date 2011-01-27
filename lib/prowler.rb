@@ -21,7 +21,7 @@
 #   rake prowler:test
 #
 # If everything is configured properly the task will send a request to
-# prowl.weks.net which will be appear on your iPhone after a short delay.
+# prowlapp.com which will be appear on your iPhone after a short delay.
 #
 # === Usage
 #
@@ -53,7 +53,7 @@
 # which can be called by a generic script which allows you to use the
 # application as a general push notification application for your iPhone.
 #
-# For more about the Prowl application see: http://prowl.weks.net/
+# For more about the Prowl application see: http://prowlapp.com/
 
 require 'logger'
 require 'net/https'

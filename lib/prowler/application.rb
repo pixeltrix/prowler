@@ -5,7 +5,7 @@ require 'prowler/version'
 
 module Prowler
 
-  SERVICE_URL = "https://prowl.weks.net/publicapi"
+  SERVICE_URL = "https://prowlapp.com/publicapi"
   USER_AGENT = "Prowler/1.1.1"
   MULTIPLE_APIKEY_COMMANDS = %w(add)
 

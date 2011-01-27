@@ -203,7 +203,7 @@ class ProwlerTest < Test::Unit::TestCase
 
   private
     def verify_url
-      "https://prowl.weks.net/publicapi/verify"
+      "#{Prowler::SERVICE_URL}/publicapi/verify"
     end
 
     def assert_verified(config, api_key = "apikey", &block)
@@ -227,7 +227,7 @@ class ProwlerTest < Test::Unit::TestCase
     end
 
     def notify_url
-      "https://prowl.weks.net/publicapi/add"
+      "#{Prowler::SERVICE_URL}/publicapi/add"
     end
 
     def build_request(config, event, message, options)
