@@ -6,7 +6,7 @@ require 'prowler/version'
 module Prowler
 
   SERVICE_URL = "https://prowlapp.com/publicapi"
-  USER_AGENT = "Prowler/1.1.1"
+  USER_AGENT = "Prowler/#{VERSION}"
   MULTIPLE_APIKEY_COMMANDS = %w(add)
 
   class ConfigurationError < StandardError; end
@@ -110,7 +110,7 @@ module Prowler
         @send_notifications.nil? ? true : !!@send_notifications
       end
 
-      def send_notifications?
+      def send_notifications? #:nodoc:
         send_notifications && Prowler.send_notifications
       end
 
@@ -157,7 +157,7 @@ module Prowler
         end
       end
 
-      def format_api_key(command, api_key)
+      def format_api_key(command, api_key) #:nodoc:
         if api_key.is_a?(Array)
           MULTIPLE_APIKEY_COMMANDS.include?(command.to_s) ? api_key.join(",") : api_key.first.to_s
         else

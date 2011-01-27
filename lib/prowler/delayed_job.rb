@@ -13,7 +13,7 @@ module Prowler
       prowler.notify(event, message, options)
     end
 
-    def options
+    def options #:nodoc:
       { :priority => priority, :url => url, :delayed => false }
     end
   end

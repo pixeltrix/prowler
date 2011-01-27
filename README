@@ -1,5 +1,4 @@
-Prowler
-=======
+== Prowler
 
 This is a plugin/gem for integrating apps with the Prowl iPhone application.
 
@@ -16,10 +15,10 @@ Rails 3.x:
 To install as a gem configure your config.gems or Gemfile:
 
 Rails 2.x:
-  config.gems 'prowler', :version => '~> 1.1'
+  config.gems 'prowler', :version => '~> 1.2'
 
 Rails 3.x:
-  gem 'prowler', '~> 1.1'
+  gem 'prowler', '~> 1.2'
 
 Prowler is not limited to Rails apps - it can be used in any situation
 where you need to send push notifications to your iPhone.

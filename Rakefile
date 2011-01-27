@@ -28,7 +28,7 @@ begin
     gemspec.summary = "Provides access to the Prowl API (http://prowlapp.com)."
     gemspec.email = "andyw@pixeltrix.co.uk"
     gemspec.homepage = "http://github.com/pixeltrix/prowler/"
-    gemspec.description = "A simple wrapper class that provides basic access to the Prowl API (http://prowlapp.com)."
+    gemspec.description = "A plugin/gem that provides access to the Prowl API (http://prowlapp.com). Works with Rails 2 or 3 as well as any other Ruby web frameworks or in your own scripts."
     gemspec.authors = ["Andrew White"]
   end
   Jeweler::GemcutterTasks.new

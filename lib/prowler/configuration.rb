@@ -57,7 +57,7 @@ module Prowler
       @logger = new_logger
     end
 
-    def rails_logger #:nodoc
+    def rails_logger #:nodoc:
       if defined?(Rails.logger)
         Rails.logger
       elsif defined?(RAILS_DEFAULT_LOGGER)
