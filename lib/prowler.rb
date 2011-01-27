@@ -343,3 +343,4 @@ class Prowler
 end
 
 require 'prowler/railtie' if defined?(Rails::Railtie)
+require 'prowler/version'
