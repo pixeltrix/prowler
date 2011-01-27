@@ -341,3 +341,5 @@ class Prowler
     self.class.perform(:verify, api_key, provider_key, {}, :get)
   end
 end
+
+require 'prowler/railtie' if defined?(Rails::Railtie)
