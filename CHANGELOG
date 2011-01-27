@@ -1,3 +1,5 @@
+* Support usage as a gem plugin
+
 * Add option for custom url
 
 * Optional parameters are deprecated in favor of an options hash

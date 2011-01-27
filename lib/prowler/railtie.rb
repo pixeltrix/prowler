@@ -1,7 +1,7 @@
 require 'prowler'
 require 'rails'
 
-class Prowler
+module Prowler
   class Railtie < Rails::Railtie
     rake_tasks do
       require "prowler/tasks"

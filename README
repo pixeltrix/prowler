@@ -5,7 +5,7 @@ This is a plugin/gem for integrating apps with the Prowl iPhone application.
 
 INSTALLATION
 
-To install as a plugin from your project's RAILS_ROOT, run:
+To install as a plugin from your application root, run:
 
 Rails 2.x:
   script/plugin install git://github.com/pixeltrix/prowler.git
@@ -34,7 +34,7 @@ You should have something like this in config/initializers/prowler.rb.
   end
 
 You can test that Prowler is working in your production environment by using
-this rake task (from RAILS_ROOT):
+this rake task (from your application root):
 
   rake prowler:test
 

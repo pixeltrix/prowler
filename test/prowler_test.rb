@@ -86,7 +86,7 @@ class ProwlerTest < Test::Unit::TestCase
     should "verify SSL certificates by default" do
       Net::HTTP.any_instance.expects(:use_ssl=).with(true)
       Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_PEER)
-      Net::HTTP.any_instance.expects(:ca_file=).with(File.join(RAILS_ROOT, "config", "cacert.pem"))
+      Net::HTTP.any_instance.expects(:ca_file=).with(File.expand_path('config/cacert.pem', RAILS_ROOT))
 
       Prowler.send_notifications = false
       Prowler.notify("Event Name", "Message Text")
@@ -185,7 +185,7 @@ class ProwlerTest < Test::Unit::TestCase
     should "verify SSL certificates by default" do
       Net::HTTP.any_instance.expects(:use_ssl=).with(true)
       Net::HTTP.any_instance.expects(:verify_mode=).with(OpenSSL::SSL::VERIFY_PEER)
-      Net::HTTP.any_instance.expects(:ca_file=).with(File.join(RAILS_ROOT, "config", "cacert.pem"))
+      Net::HTTP.any_instance.expects(:ca_file=).with(File.expand_path('config/cacert.pem', RAILS_ROOT))
 
       Prowler.send_notifications = false
       Prowler.verify
@@ -276,14 +276,14 @@ class ProwlerTest < Test::Unit::TestCase
         delayed = options.delete(:delayed)
         options[:priority] ||= Prowler::Priority::NORMAL
 
-        Prowler.expects(:enqueue_delayed_job).with(Prowler, "Event Name", "Message Text", options)
+        Prowler::Application.any_instance.expects(:enqueue_delayed_job).with("Event Name", "Message Text", options)
         config.notify event, message, options.merge(:delayed => delayed)
       else
         priority = args.shift
         delayed = args.shift
         options = { :priority => priority }
 
-        Prowler.expects(:enqueue_delayed_job).with(Prowler, "Event Name", "Message Text", options)
+        Prowler::Application.any_instance.expects(:enqueue_delayed_job).with("Event Name", "Message Text", options)
         config.notify event, message, priority, delayed
       end
 
