@@ -1,3 +1,10 @@
+*1.2.1 (January 27th, 2011)
+
+* Correct typo in providerkey url parameter
+
+
+*1.2.0 (January 27th, 2011)
+
 * Support usage as a gem plugin
 
 * Add option for custom url
