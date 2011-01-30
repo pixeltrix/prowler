@@ -149,6 +149,11 @@ class ProwlerTest < Test::Unit::TestCase
     should "send with a high priority using options" do
       assert_notified Prowler, "Event Name", "Message Text", :priority => Prowler::Priority::HIGH
     end
+
+    should "send the provider key if configured" do
+      Prowler.provider_key = "providerkey"
+      assert_notified Prowler, "Event Name", "Message Text"
+    end
   end
 
   context "Verifying an API key" do
@@ -199,6 +204,11 @@ class ProwlerTest < Test::Unit::TestCase
       Prowler.verify_certificate = false
       Prowler.verify
     end
+
+    should "send the provider key if configured" do
+      Prowler.provider_key = "providerkey"
+      assert_verified Prowler, "apikey", "providerkey"
+    end
   end
 
   private
@@ -206,8 +216,16 @@ class ProwlerTest < Test::Unit::TestCase
       "#{Prowler::SERVICE_URL}/verify"
     end
 
-    def assert_verified(config, api_key = "apikey", &block)
-      request = stub_request(:get, "#{verify_url}?apikey=#{api_key}")
+    def build_url(config, api_key, provider_key)
+      if provider_key
+        "#{verify_url}?providerkey=#{provider_key}&apikey=#{api_key}"
+      else
+        "#{verify_url}?apikey=#{api_key}"
+      end
+    end
+
+    def assert_verified(config, api_key = "apikey", provider_key = nil, &block)
+      request = stub_request(:get, build_url(config, api_key, provider_key))
       request.with(:headers => { "Accept" => "*/*" })
       request.with(:headers => { "User-Agent" => Prowler::USER_AGENT })
 
@@ -218,12 +236,12 @@ class ProwlerTest < Test::Unit::TestCase
       end
 
       config.verify
-      assert_requested :get, "#{verify_url}?apikey=#{api_key}"
+      assert_requested :get, build_url(config, api_key, provider_key)
     end
 
-    def assert_not_verified(config, api_key = "apikey")
+    def assert_not_verified(config, api_key = "apikey", provider_key = nil)
       config.verify
-      assert_not_requested :get, "#{verify_url}?apikey=#{api_key}"
+      assert_not_requested :get, build_url(config, api_key, provider_key)
     end
 
     def notify_url

@@ -68,7 +68,7 @@ module Prowler
 
     private
       def perform(command, api_key, provider_key, data = {}, method = :post) #:nodoc:
-        params = { :apikey => format_api_key(command, api_key), :provider_key => provider_key }.merge(data).delete_if { |k,v| v.nil? }
+        params = { :apikey => format_api_key(command, api_key), :providerkey => provider_key }.merge(data).delete_if { |k,v| v.nil? }
         case method
         when :post
           perform_post(command, params)
