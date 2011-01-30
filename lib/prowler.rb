@@ -32,7 +32,7 @@
 # If you need to send to multiple accounts from within a single application you
 # can create an instance of the Prowler class to override the global settings, e.g.
 #
-#   prowler = Prowler.new('apikey', 'application')
+#   prowler = Prowler.new(:application => 'application', :api_key => 'apikey')
 #   prowler.notify "Event", "Description", Prowler::Priority::NORMAL
 #
 # If performance is a concern then there is built in support for Delayed::Job.
@@ -73,23 +73,21 @@ module Prowler
     # * +:priority+: The priority of the notification - see Prowler::Priority. (Optional)
     # * +:url+:      A custom url for the Prowl application to open. (Optional)
     def notify(event, message, *args)
-      app = new(api_key, application, provider_key)
-      app.notify(event, message, *args)
+      new.notify(event, message, *args)
     end
 
     # Verify the configured API key is valid
     def verify
-      app = new(api_key, application, provider_key)
-      app.verify
+      new.verify
     end
 
     # Create an instance for sending to different accounts within a single Rails application
-    # * api_key:      Your API key.
-    # * application:  The name of your application.
-    # * provider_key: Key to override the rate limit of 1000 requests per hour. (Optional)
-    def new(api_key, application, provider_key = nil)
-      Prowler::Application.new(api_key, application, provider_key)
+    # Pass any of the following options to override the global configuration:
+    # * +:application+:  The name of your application.
+    # * +:provider_key+: Key to override the rate limit of 1000 requests per hour.
+    # * +:api_key+:      Your API key.
+    def new(*args)
+      Prowler::Application.new(*args)
     end
   end
 end
-

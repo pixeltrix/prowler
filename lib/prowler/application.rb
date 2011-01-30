@@ -8,6 +8,7 @@ module Prowler
   SERVICE_URL = "https://prowlapp.com/publicapi"
   USER_AGENT = "Prowler/#{VERSION}"
   MULTIPLE_APIKEY_COMMANDS = %w(add)
+  CONFIG_ATTRS = [:application, :provider_key, :api_key]
 
   class ConfigurationError < StandardError; end
 
@@ -16,11 +17,20 @@ module Prowler
     attr_accessor :application, :send_notifications #:nodoc:
 
     # Create an instance for sending to different accounts within a single Rails application
-    # * api_key:      Your API key.
-    # * application:  The name of your application.
-    # * provider_key: Key to override the rate limit of 1000 requests per hour. (Optional)
-    def initialize(api_key, application, provider_key = nil)
-      @api_key, @application, @provider_key = api_key, application, provider_key
+    # Pass any of the following options to override the global configuration:
+    # * +:application+:  The name of your application.
+    # * +:provider_key+: Key to override the rate limit of 1000 requests per hour.
+    # * +:api_key+:      Your API key.
+    def initialize(*args)
+      if args.empty?
+        CONFIG_ATTRS.each{ |attr| send("#{attr}=".to_sym, Prowler.send(attr)) }
+      elsif args.first.is_a?(Hash)
+        CONFIG_ATTRS.each do |attr|
+          send("#{attr}=".to_sym, args[0][attr] || Prowler.send(attr))
+        end
+      else
+        @api_key, @application, @provider_key = args[0], args[1], args[2]
+      end
     end
 
     # Send a notification to your iPhone:
@@ -28,9 +38,9 @@ module Prowler
     # * message:  The text of the notification message you want to send.
     #
     # The following options are supported:
-    # * +:delayed+:  Whether to use Delayed::Job to send notifications. (Optional)
-    # * +:priority+: The priority of the notification - see Prowler::Priority. (Optional)
-    # * +:url+:      A custom url for the Prowl application to open. (Optional)
+    # * +:delayed+:  Whether to use Delayed::Job to send notifications.
+    # * +:priority+: The priority of the notification - see Prowler::Priority.
+    # * +:url+:      A custom url for the Prowl application to open.
     def notify(event, message, *args)
       raise ConfigurationError, "You must provide an API key to send notifications" if api_key.nil?
       raise ConfigurationError, "You must provide an application name to send notifications" if application.nil?

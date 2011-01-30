@@ -26,10 +26,12 @@ class ProwlerTest < Test::Unit::TestCase
       Prowler.configure do |config|
         config.api_key = "apikey"
         config.application = "application"
+        config.provider_key = "providerkey"
       end
 
       assert_equal "apikey",      Prowler.api_key
       assert_equal "application", Prowler.application
+      assert_equal "providerkey", Prowler.provider_key
     end
 
     should "not set a default application" do
@@ -40,10 +42,38 @@ class ProwlerTest < Test::Unit::TestCase
       assert_equal nil, Prowler.api_key
     end
 
-    should "override class configuration when using an instance" do
-      prowler = Prowler.new("apikey2", "application2")
-      assert_equal "apikey2",      prowler.api_key
-      assert_equal "application2", prowler.application
+    context "when using an instance" do
+      setup do
+        Prowler.reset_configuration
+
+        Prowler.configure do |config|
+          config.api_key = "apikey"
+          config.application = "application"
+          config.provider_key = "providerkey"
+        end
+      end
+
+      should "inheirit config from global scope" do
+        prowler = Prowler.new
+        assert_equal "apikey",      prowler.api_key
+        assert_equal "application", prowler.application
+        assert_equal "providerkey", prowler.provider_key
+      end
+
+      should "override application config" do
+        prowler = Prowler.new(:application => "application2")
+        assert_equal "application2", prowler.application
+      end
+
+      should "override provider_key config" do
+        prowler = Prowler.new(:provider_key => "providerkey2")
+        assert_equal "providerkey2", prowler.provider_key
+      end
+
+      should "override api_key config" do
+        prowler = Prowler.new(:api_key => "apikey2")
+        assert_equal "apikey2", prowler.api_key
+      end
     end
   end
 
@@ -128,11 +158,6 @@ class ProwlerTest < Test::Unit::TestCase
       assert_delayed Prowler, "Event Name", "Message Text"
     end
 
-    should "delay sending using deprecated parameter" do
-      Prowler.delayed = false
-      assert_delayed Prowler, "Event Name", "Message Text", Prowler::Priority::NORMAL, true
-    end
-
     should "delay sending using options" do
       Prowler.delayed = false
       assert_delayed Prowler, "Event Name", "Message Text", :delayed => true
@@ -140,10 +165,6 @@ class ProwlerTest < Test::Unit::TestCase
 
     should "send a custom url" do
       assert_notified Prowler, "Event Name", "Message Text", :url => "http://www.pixeltrix.co.uk"
-    end
-
-    should "send with a high priority using deprecated parameter" do
-      assert_notified Prowler, "Event Name", "Message Text", Prowler::Priority::HIGH
     end
 
     should "send with a high priority using options" do
@@ -208,6 +229,89 @@ class ProwlerTest < Test::Unit::TestCase
     should "send the provider key if configured" do
       Prowler.provider_key = "providerkey"
       assert_verified Prowler, "apikey", "providerkey"
+    end
+  end
+
+  context "Using deprecated API" do
+    context "Prowler configuration" do
+      setup do
+        Prowler.reset_configuration
+      end
+
+      should "override class configuration when using an instance" do
+        prowler = Prowler.new("apikey2", "application2", "providerkey2")
+        assert_equal "apikey2",      prowler.api_key
+        assert_equal "application2", prowler.application
+        assert_equal "providerkey2", prowler.provider_key
+      end
+    end
+
+    context "Sending a notification" do
+      setup do
+        Prowler.reset_configuration
+        Prowler.configure do |config|
+          config.api_key = "apikey"
+          config.application = "Application Name"
+        end
+      end
+
+      should "raise an exception if API key not configured" do
+        Prowler.reset_configuration
+        assert_raises Prowler::ConfigurationError do
+          Prowler.notify("Event", "Description")
+        end
+
+        prowler = Prowler.new(nil, nil)
+        assert_raises Prowler::ConfigurationError do
+          prowler.notify("Event", "Description")
+        end
+      end
+
+      should "raise an exception if application not configured" do
+        Prowler.reset_configuration
+        Prowler.configure do |config|
+          config.api_key = "apikey"
+        end
+        assert_raises Prowler::ConfigurationError do
+          Prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
+        end
+
+        prowler = Prowler.new("apikey", nil)
+        assert_raises Prowler::ConfigurationError do
+          prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
+        end
+      end
+
+      should "delay sending using parameter" do
+        Prowler.delayed = false
+        assert_delayed Prowler, "Event Name", "Message Text", Prowler::Priority::NORMAL, true
+      end
+
+      should "send with a high priority using parameter" do
+        assert_notified Prowler, "Event Name", "Message Text", Prowler::Priority::HIGH
+      end
+    end
+
+    context "Verifying an API key" do
+      setup do
+        Prowler.reset_configuration
+        Prowler.configure do |config|
+          config.api_key = "apikey"
+          config.application = "Application Name"
+        end
+      end
+
+      should "raise an exception if API key not configured" do
+        Prowler.reset_configuration
+        assert_raises Prowler::ConfigurationError do
+          Prowler.verify
+        end
+
+        prowler = Prowler.new(nil, nil)
+        assert_raises Prowler::ConfigurationError do
+          Prowler.verify
+        end
+      end
     end
   end
 

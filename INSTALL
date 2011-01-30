@@ -50,7 +50,7 @@ To use Prowler within your application just call the notify method, e.g.
 If you need to send to multiple accounts from within a single application you
 can create an instance of the Prowler class to override the global settings, e.g.
 
-  prowler = Prowler.new('apikey', 'application')
+  prowler = Prowler.new(:application => 'application', :api_key => 'apikey')
   prowler.notify "Event", "Description"
 
 If performance is a concern then there is built in support for Delayed::Job.

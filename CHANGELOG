@@ -1,3 +1,6 @@
+* Use an options hash to initialize instance
+
+
 *1.2.1 (January 30th, 2011)
 
 * Correct typo in providerkey url parameter
