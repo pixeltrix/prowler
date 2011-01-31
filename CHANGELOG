@@ -1,3 +1,5 @@
+* Allow passing of api_key to notify and verify
+
 * Use an options hash to initialize instance
 
 

@@ -89,12 +89,12 @@ class ProwlerTest < Test::Unit::TestCase
     should "raise an exception if API key not configured" do
       Prowler.reset_configuration
       assert_raises Prowler::ConfigurationError do
-        Prowler.notify("Event", "Description")
+        Prowler.notify "Event", "Description"
       end
 
       prowler = Prowler.new(nil, nil)
       assert_raises Prowler::ConfigurationError do
-        prowler.notify("Event", "Description")
+        prowler.notify "Event", "Description"
       end
     end
 
@@ -104,12 +104,12 @@ class ProwlerTest < Test::Unit::TestCase
         config.api_key = "apikey"
       end
       assert_raises Prowler::ConfigurationError do
-        Prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
+        Prowler.notify "Event", "Description"
       end
 
       prowler = Prowler.new("apikey", nil)
       assert_raises Prowler::ConfigurationError do
-        prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
+        prowler.notify "Event", "Description"
       end
     end
 
@@ -119,7 +119,7 @@ class ProwlerTest < Test::Unit::TestCase
       Net::HTTP.any_instance.expects(:ca_file=).with(File.expand_path('config/cacert.pem', RAILS_ROOT))
 
       Prowler.send_notifications = false
-      Prowler.notify("Event Name", "Message Text")
+      Prowler.notify "Event Name", "Message Text"
     end
 
     should "not verify SSL certificates if verification is turned off" do
@@ -128,52 +128,163 @@ class ProwlerTest < Test::Unit::TestCase
 
       Prowler.send_notifications = false
       Prowler.verify_certificate = false
-      Prowler.notify("Event Name", "Message Text")
+      Prowler.notify "Event Name", "Message Text"
     end
 
     should "not send notifications if send_notifications is false" do
+      stub_request :post, "#{Prowler::SERVICE_URL}/add"
+
       Prowler.send_notifications = false
-      assert_not_notified Prowler, "Event Name", "Message Text"
+      Prowler.notify "Event Name", "Message Text"
+
+      assert_not_requested :post, "#{Prowler::SERVICE_URL}/add"
     end
 
     should "send multiple API keys if configured" do
+      stub_request :post, "#{Prowler::SERVICE_URL}/add"
+
       Prowler.api_key = %w(apikey1 apikey2)
-      assert_notified Prowler, "Event Name", "Message Text"
+      Prowler.notify "Event Name", "Message Text"
+
+      assert_requested :post, "#{Prowler::SERVICE_URL}/add", :body => {
+        :application => "Application Name",
+        :apikey => "apikey1,apikey2",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::NORMAL.to_s
+      }
     end
 
     should "log a successful response" do
+      stub_request :post, "#{Prowler::SERVICE_URL}/add"
+
       Prowler.logger.expects(:info).with("Prowl Success: Net::HTTPOK")
-      assert_notified Prowler, "Event Name", "Message Text"
+      Prowler.notify "Event Name", "Message Text"
+
+      assert_requested :post, "#{Prowler::SERVICE_URL}/add", :body => {
+        :application => "Application Name",
+        :apikey => "apikey",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::NORMAL.to_s
+      }
     end
 
     should "log an error response" do
+      stub_request(:post, "#{Prowler::SERVICE_URL}/add").
+        to_return(:status => 500, :body => "", :headers => {})
+
       Prowler.logger.expects(:error).with("Prowl Failure: Net::HTTPInternalServerError\n")
-      assert_notified Prowler, "Event Name", "Message Text" do |request|
-        request.to_return(:status => 500, :body => "", :headers => {})
-      end
+      Prowler.notify "Event Name", "Message Text"
+
+      assert_requested :post, "#{Prowler::SERVICE_URL}/add", :body => {
+        :application => "Application Name",
+        :apikey => "apikey",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::NORMAL.to_s
+      }
     end
 
     should "delay sending if configured globally" do
+      Prowler::Application.any_instance.expects(:enqueue_delayed_job).with(
+        :application => "Application Name",
+        :providerkey => nil,
+        :apikey => "apikey",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::NORMAL
+      )
+
       Prowler.delayed = true
-      assert_delayed Prowler, "Event Name", "Message Text"
+      Prowler.notify "Event Name", "Message Text"
     end
 
     should "delay sending using options" do
+      Prowler::Application.any_instance.expects(:enqueue_delayed_job).with(
+        :application => "Application Name",
+        :providerkey => nil,
+        :apikey => "apikey",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::NORMAL
+      )
+
       Prowler.delayed = false
-      assert_delayed Prowler, "Event Name", "Message Text", :delayed => true
+      Prowler.notify "Event Name", "Message Text", :delayed => true
     end
 
     should "send a custom url" do
-      assert_notified Prowler, "Event Name", "Message Text", :url => "http://www.pixeltrix.co.uk"
+      stub_request(:post, "#{Prowler::SERVICE_URL}/add")
+
+      Prowler.notify "Event Name", "Message Text", :url => "http://www.pixeltrix.co.uk"
+
+      assert_requested :post, "#{Prowler::SERVICE_URL}/add", :body => {
+        :application => "Application Name",
+        :apikey => "apikey",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::NORMAL.to_s,
+        :url => "http://www.pixeltrix.co.uk"
+      }
     end
 
     should "send with a high priority using options" do
-      assert_notified Prowler, "Event Name", "Message Text", :priority => Prowler::Priority::HIGH
+      stub_request(:post, "#{Prowler::SERVICE_URL}/add")
+
+      Prowler.notify "Event Name", "Message Text", :priority => Prowler::Priority::HIGH
+
+      assert_requested :post, "#{Prowler::SERVICE_URL}/add", :body => {
+        :application => "Application Name",
+        :apikey => "apikey",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::HIGH.to_s
+      }
     end
 
     should "send the provider key if configured" do
+      stub_request(:post, "#{Prowler::SERVICE_URL}/add")
+
       Prowler.provider_key = "providerkey"
-      assert_notified Prowler, "Event Name", "Message Text"
+      Prowler.notify "Event Name", "Message Text"
+
+      assert_requested :post, "#{Prowler::SERVICE_URL}/add", :body => {
+        :application => "Application Name",
+        :providerkey => "providerkey",
+        :apikey => "apikey",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::NORMAL.to_s
+      }
+    end
+
+    should "allow passing the API key as a parameter" do
+      stub_request(:post, "#{Prowler::SERVICE_URL}/add")
+
+      Prowler.notify "Event Name", "Message Text", "apikey1"
+
+      assert_requested :post, "#{Prowler::SERVICE_URL}/add", :body => {
+        :application => "Application Name",
+        :apikey => "apikey1",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::NORMAL.to_s
+      }
+    end
+
+    should "allow passing multiple API keys as a parameter" do
+      stub_request(:post, "#{Prowler::SERVICE_URL}/add")
+
+      Prowler.notify "Event Name", "Message Text", %w[apikey1 apikey2]
+
+      assert_requested :post, "#{Prowler::SERVICE_URL}/add", :body => {
+        :application => "Application Name",
+        :apikey => "apikey1,apikey2",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::NORMAL.to_s
+      }
     end
   end
 
@@ -199,13 +310,21 @@ class ProwlerTest < Test::Unit::TestCase
     end
 
     should "only verify the first API key" do
+      stub_request :get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey1"
+
       Prowler.api_key = %w(apikey1 apikey2)
-      assert_verified Prowler, "apikey1"
+      Prowler.verify
+
+      assert_requested :get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey1"
     end
 
     should "not send notifications if send_notifications is false" do
+      stub_request :get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey"
+
       Prowler.send_notifications = false
-      assert_not_verified Prowler
+      Prowler.verify
+
+      assert_not_requested :get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey"
     end
 
     should "verify SSL certificates by default" do
@@ -227,8 +346,24 @@ class ProwlerTest < Test::Unit::TestCase
     end
 
     should "send the provider key if configured" do
+      stub_request :get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey&providerkey=providerkey"
+
       Prowler.provider_key = "providerkey"
-      assert_verified Prowler, "apikey", "providerkey"
+      Prowler.verify
+
+      assert_requested :get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey&providerkey=providerkey"
+    end
+
+    should "allow passing an API key as a parameter" do
+      stub_request :get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey1"
+      Prowler.verify "apikey1"
+      assert_requested :get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey1"
+    end
+
+    should "only verify the first API key passed as a parameter" do
+      stub_request :get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey1"
+      Prowler.verify %w[apikey1 apikey2]
+      assert_requested :get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey1"
     end
   end
 
@@ -255,163 +390,33 @@ class ProwlerTest < Test::Unit::TestCase
         end
       end
 
-      should "raise an exception if API key not configured" do
-        Prowler.reset_configuration
-        assert_raises Prowler::ConfigurationError do
-          Prowler.notify("Event", "Description")
-        end
-
-        prowler = Prowler.new(nil, nil)
-        assert_raises Prowler::ConfigurationError do
-          prowler.notify("Event", "Description")
-        end
-      end
-
-      should "raise an exception if application not configured" do
-        Prowler.reset_configuration
-        Prowler.configure do |config|
-          config.api_key = "apikey"
-        end
-        assert_raises Prowler::ConfigurationError do
-          Prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
-        end
-
-        prowler = Prowler.new("apikey", nil)
-        assert_raises Prowler::ConfigurationError do
-          prowler.notify("Event", "Description", Prowler::Priority::NORMAL)
-        end
-      end
-
       should "delay sending using parameter" do
+        Prowler::Application.any_instance.expects(:enqueue_delayed_job).with(
+          :application => "Application Name",
+          :providerkey => nil,
+          :apikey => "apikey",
+          :event => "Event Name",
+          :description => "Message Text",
+          :priority => Prowler::Priority::NORMAL
+        )
+
         Prowler.delayed = false
-        assert_delayed Prowler, "Event Name", "Message Text", Prowler::Priority::NORMAL, true
+        Prowler.notify "Event Name", "Message Text", Prowler::Priority::NORMAL, true
       end
 
       should "send with a high priority using parameter" do
-        assert_notified Prowler, "Event Name", "Message Text", Prowler::Priority::HIGH
-      end
-    end
+        stub_request(:post, "#{Prowler::SERVICE_URL}/add")
 
-    context "Verifying an API key" do
-      setup do
-        Prowler.reset_configuration
-        Prowler.configure do |config|
-          config.api_key = "apikey"
-          config.application = "Application Name"
-        end
-      end
+        Prowler.notify "Event Name", "Message Text", Prowler::Priority::HIGH
 
-      should "raise an exception if API key not configured" do
-        Prowler.reset_configuration
-        assert_raises Prowler::ConfigurationError do
-          Prowler.verify
-        end
-
-        prowler = Prowler.new(nil, nil)
-        assert_raises Prowler::ConfigurationError do
-          Prowler.verify
-        end
+        assert_requested :post, "#{Prowler::SERVICE_URL}/add", :body => {
+          :application => "Application Name",
+          :apikey => "apikey",
+          :event => "Event Name",
+          :description => "Message Text",
+          :priority => Prowler::Priority::HIGH.to_s
+        }
       end
     end
   end
-
-  private
-    def verify_url
-      "#{Prowler::SERVICE_URL}/verify"
-    end
-
-    def build_url(config, api_key, provider_key)
-      if provider_key
-        "#{verify_url}?providerkey=#{provider_key}&apikey=#{api_key}"
-      else
-        "#{verify_url}?apikey=#{api_key}"
-      end
-    end
-
-    def assert_verified(config, api_key = "apikey", provider_key = nil, &block)
-      request = stub_request(:get, build_url(config, api_key, provider_key))
-      request.with(:headers => { "Accept" => "*/*" })
-      request.with(:headers => { "User-Agent" => Prowler::USER_AGENT })
-
-      if block_given?
-        yield request
-      else
-        request.to_return(:status => 200, :body => "", :headers => {})
-      end
-
-      config.verify
-      assert_requested :get, build_url(config, api_key, provider_key)
-    end
-
-    def assert_not_verified(config, api_key = "apikey", provider_key = nil)
-      config.verify
-      assert_not_requested :get, build_url(config, api_key, provider_key)
-    end
-
-    def notify_url
-      "#{Prowler::SERVICE_URL}/add"
-    end
-
-    def build_request(config, event, message, options)
-      body = {}
-      if options.is_a?(Hash)
-        body["priority"] = (options[:priority] || Prowler::Priority::NORMAL).to_s
-        body["url"] = options[:url] if options[:url]
-      else
-        body["priority"] = (options || Prowler::Priority::NORMAL).to_s
-      end
-      body["application"] = config.application
-      body["event"] = event
-      body["apikey"] = Array(config.api_key).join(",")
-      body["description"] = message
-      body["providerkey"] = config.provider_key if config.provider_key
-      body
-    end
-
-    def assert_notified(config, event, message, options = {}, &block)
-      body = build_request(config, event, message, options)
-
-      request = stub_request(:post, notify_url)
-      request.with(:headers => { "Accept" => "*/*" })
-      request.with(:headers => { "User-Agent" => Prowler::USER_AGENT })
-      request.with(:headers => { "Content-Type" => "application/x-www-form-urlencoded" })
-      request.with(:body => body)
-
-      if block_given?
-        yield request
-      else
-        request.to_return(:status => 200, :body => "", :headers => {})
-      end
-
-      config.notify event, message, options
-      assert_requested :post, notify_url, :body => body
-    end
-
-    def assert_not_notified(config, event, message, options = {})
-      config.notify event, message
-      assert_not_requested :post, notify_url, :body => build_request(config, event, message, options)
-    end
-
-    def assert_delayed(config, event, message, *args, &block)
-      if args.first.is_a?(Hash) || args.empty?
-        options = args.first || {}
-        delayed = options.delete(:delayed)
-        options[:priority] ||= Prowler::Priority::NORMAL
-
-        Prowler::Application.any_instance.expects(:enqueue_delayed_job).with("Event Name", "Message Text", options)
-        config.notify event, message, options.merge(:delayed => delayed)
-      else
-        priority = args.shift
-        delayed = args.shift
-        options = { :priority => priority }
-
-        Prowler::Application.any_instance.expects(:enqueue_delayed_job).with("Event Name", "Message Text", options)
-        config.notify event, message, priority, delayed
-      end
-
-      if delayed
-        assert_not_requested :post, notify_url, :body => build_request(config, event, message, options)
-      end
-    end
-
 end

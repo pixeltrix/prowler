@@ -65,8 +65,9 @@ require 'prowler/railtie' if defined?(Rails::Railtie)
 module Prowler
   class << self
     # Send a notification to your iPhone:
-    # * event:    The title of notification you want to send.
-    # * message:  The text of the notification message you want to send.
+    # * event:   The title of notification you want to send.
+    # * message: The text of the notification message you want to send.
+    # * api_key: One or more API keys to be notified - uses the configured key(s) if not provided.
     #
     # The following options are supported:
     # * +:delayed+:  Whether to use Delayed::Job to send notifications. (Optional)
@@ -77,8 +78,9 @@ module Prowler
     end
 
     # Verify the configured API key is valid
-    def verify
-      new.verify
+    # * api_key: API key to be verified - uses the first configured key(s) if not provided.
+    def verify(api_key = nil)
+      new.verify(api_key)
     end
 
     # Create an instance for sending to different accounts within a single Rails application
