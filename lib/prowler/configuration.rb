@@ -4,6 +4,7 @@ module Prowler
     attr_accessor :application, :send_notifications
     attr_accessor :read_timeout, :open_timeout #:nodoc:
     attr_accessor :delayed, :verify_certificate, :root_certificates
+    attr_accessor :raise_errors
 
     # Call this method to configure your account details in an initializer.
     def configure
@@ -16,6 +17,10 @@ module Prowler
 
     def delayed #:nodoc:
       @delayed.nil? ? false : !!@delayed
+    end
+
+    def raise_errors #:nodoc:
+      @raise_errors.nil? ? false : !!@raise_errors
     end
 
     # Reset configuration

@@ -1,4 +1,6 @@
-* Allow passing of api_key to notify and verify
+* Add retrive_token and retrieve_api_key commands
+
+* Allow passing of API keys to notify and verify
 
 * Use an options hash to initialize instance
 

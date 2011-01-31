@@ -1,6 +1,7 @@
 require 'prowler/configuration'
 require 'prowler/delayed_job'
 require 'prowler/priority'
+require 'prowler/response'
 require 'prowler/version'
 
 module Prowler
@@ -63,26 +64,46 @@ module Prowler
       if options.delete(:delayed)
         enqueue_delayed_job(options)
       else
-        perform(:add, options)
+        perform(:add, options, :post, Success)
       end
     end
 
     # Verify the configured API key is valid
     def verify(api_key = nil)
       raise ConfigurationError, "You must provide an API key to verify" if api_key.nil? && self.api_key.nil?
-      perform(:verify, { :providerkey => provider_key, :apikey => api_key || self.api_key }, :get)
+      perform(:verify, { :providerkey => provider_key, :apikey => api_key || self.api_key }, :get, Success)
+    end
+
+    # Retrieve a registration token and confirmation url for the initial phase
+    # of fetching an API key for a user. The token is valid for 24 hours.
+    # This API command requires the provider_key to be configured.
+    #
+    # Returns either Prowler::Token object if successful or nil if an error occurs.
+    def retrieve_token
+      raise ConfigurationError, "You must have a provider key to retrieve API keys" if provider_key.nil?
+      perform("retrieve/token", { :providerkey => provider_key }, :get, Token)
+    end
+
+    # Retrieve an API key for a user using the token provided by retrieve_token.
+    # This API command requires the provider_key to be configured.
+    # * token: Token returned by retrieve_token command.
+    #
+    # Returns either Prowler::ApiKey object if successful or nil if an error occurs.
+    def retrieve_api_key(token)
+      raise ConfigurationError, "You must have a provider key to retrieve API keys" if provider_key.nil?
+      perform("retrieve/apikey", { :providerkey => provider_key, :token => token }, :get, ApiKey)
     end
 
     private
-      def perform(command, params = {}, method = :post) #:nodoc:
+      def perform(command, params = {}, method = :post, klass = Success) #:nodoc:
         params[:apikey] = format_api_key(command, params[:apikey]) if params.key?(:apikey)
         params.delete_if { |k,v| v.nil? }
 
         case method
         when :post
-          perform_post(command, params)
+          perform_post(command, params, klass)
         else
-          perform_get(command, params)
+          perform_get(command, params, klass)
         end
       end
 
@@ -123,20 +144,20 @@ module Prowler
         send_notifications && Prowler.send_notifications
       end
 
-      def perform_get(command, params) #:nodoc:
+      def perform_get(command, params, klass) #:nodoc:
         url = URI.parse("#{SERVICE_URL}/#{command}?#{params.map{ |k,v| %(#{URI.encode(k.to_s)}=#{URI.encode(v.to_s)}) }.join('&')}")
         request = Net::HTTP::Get.new("#{url.path}?#{url.query}", headers)
-        perform_request(url, request)
+        perform_request(url, request, klass)
       end
 
-      def perform_post(command, params) #:nodoc:
+      def perform_post(command, params, klass) #:nodoc:
         url = URI.parse("#{SERVICE_URL}/#{command}")
         request = Net::HTTP::Post.new(url.path, headers)
         request.form_data = params
-        perform_request(url, request)
+        perform_request(url, request, klass)
       end
 
-      def perform_request(url, request) #:nodoc:
+      def perform_request(url, request, klass) #:nodoc:
         http = Net::HTTP.new(url.host, url.port)
         http.use_ssl = true
         if verify_certificate?
@@ -149,15 +170,25 @@ module Prowler
         http.open_timeout = Prowler.open_timeout
         http.start do
           begin
-            return true unless send_notifications?
-            response = http.request(request)
-            case response
-            when Net::HTTPSuccess then
-              logger.info "Prowl Success: #{response.class}"
-              true
-            else
-              logger.error "Prowl Failure: #{response.class}\n#{response.body if response.respond_to? :body}"
-              false
+            if send_notifications?
+              response = http.request(request)
+              case response
+              when Net::HTTPSuccess then
+                logger.info "Prowl Success: #{response.class}"
+              else
+                logger.error "Prowl Failure: #{response.class}"
+                klass = Error
+              end
+
+              unless response.body.empty?
+                document = REXML::Document.new(response.body)
+
+                if document && klass == Error
+                  raise klass.new(document) if Prowler.raise_errors
+                elsif document
+                  klass.new(document)
+                end
+              end
             end
           rescue TimeoutError => e
             logger.error "Timeout while contacting the Prowl server."

@@ -132,7 +132,7 @@ class ProwlerTest < Test::Unit::TestCase
     end
 
     should "not send notifications if send_notifications is false" do
-      stub_request :post, "#{Prowler::SERVICE_URL}/add"
+      stub_request(:post, "#{Prowler::SERVICE_URL}/add")
 
       Prowler.send_notifications = false
       Prowler.notify "Event Name", "Message Text"
@@ -156,7 +156,7 @@ class ProwlerTest < Test::Unit::TestCase
     end
 
     should "log a successful response" do
-      stub_request :post, "#{Prowler::SERVICE_URL}/add"
+      stub_request(:post, "#{Prowler::SERVICE_URL}/add")
 
       Prowler.logger.expects(:info).with("Prowl Success: Net::HTTPOK")
       Prowler.notify "Event Name", "Message Text"
@@ -172,9 +172,9 @@ class ProwlerTest < Test::Unit::TestCase
 
     should "log an error response" do
       stub_request(:post, "#{Prowler::SERVICE_URL}/add").
-        to_return(:status => 500, :body => "", :headers => {})
+        to_return(:status => 500, :headers => {}, :body => "")
 
-      Prowler.logger.expects(:error).with("Prowl Failure: Net::HTTPInternalServerError\n")
+      Prowler.logger.expects(:error).with("Prowl Failure: Net::HTTPInternalServerError")
       Prowler.notify "Event Name", "Message Text"
 
       assert_requested :post, "#{Prowler::SERVICE_URL}/add", :body => {
@@ -286,6 +286,42 @@ class ProwlerTest < Test::Unit::TestCase
         :priority => Prowler::Priority::NORMAL.to_s
       }
     end
+
+    context "when raise_errors is true" do
+      should "raise an exception if the Prowl API returns an error" do
+        stub_request(:post, "#{Prowler::SERVICE_URL}/add").
+          to_return(:status => 500, :headers => {}, :body => <<-EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <prowl>
+              <error code="500">Internal Server Error</error>
+            </prowl>
+            EOF
+          )
+
+        assert_raises(Prowler::Error) do
+          Prowler.raise_errors = true
+          Prowler.notify "Event Name", "Message Text"
+        end
+      end
+    end
+
+    context "when raise_errors is false" do
+      should "not raise an exception if the the Prowl API returns an error" do
+        stub_request(:post, "#{Prowler::SERVICE_URL}/add").
+          to_return(:status => 500, :headers => {}, :body => <<-EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <prowl>
+              <error code="500">Internal Server Error</error>
+            </prowl>
+            EOF
+          )
+
+        assert_nothing_raised do
+          Prowler.raise_errors = false
+          Prowler.notify "Event Name", "Message Text"
+        end
+      end
+    end
   end
 
   context "Verifying an API key" do
@@ -365,6 +401,104 @@ class ProwlerTest < Test::Unit::TestCase
       Prowler.verify %w[apikey1 apikey2]
       assert_requested :get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey1"
     end
+
+    context "when raise_errors is true" do
+      should "raise an exception if the Prowl API returns an error" do
+        stub_request(:get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey").
+          to_return(:status => 500, :headers => {}, :body => <<-EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <prowl>
+              <error code="500">Internal Server Error</error>
+            </prowl>
+            EOF
+          )
+
+        assert_raises(Prowler::Error) do
+          Prowler.raise_errors = true
+          Prowler.verify
+        end
+      end
+    end
+
+    context "when raise_errors is false" do
+      should "not raise an exception if the the Prowl API returns an error" do
+        stub_request(:get, "#{Prowler::SERVICE_URL}/verify?apikey=apikey").
+          to_return(:status => 500, :headers => {}, :body => <<-EOF
+            <?xml version="1.0" encoding="UTF-8"?>
+            <prowl>
+              <error code="500">Internal Server Error</error>
+            </prowl>
+            EOF
+          )
+
+        assert_nothing_raised do
+          Prowler.raise_errors = false
+          Prowler.verify
+        end
+      end
+    end
+  end
+
+  context "Retrieving an API key" do
+    setup do
+      Prowler.reset_configuration
+      Prowler.configure do |config|
+        config.provider_key = "providerkey"
+      end
+    end
+
+    should "raise an exception if the provider key is not configured" do
+      Prowler.reset_configuration
+      assert_raises Prowler::ConfigurationError do
+        Prowler.retrieve_token
+      end
+
+      assert_raises Prowler::ConfigurationError do
+        Prowler.retrieve_api_key("token")
+      end
+    end
+
+    should "request a token and return a Prowler::Token instance when successful" do
+      stub_request(:get, "#{Prowler::SERVICE_URL}/retrieve/token?providerkey=providerkey").
+        to_return(:status => 200, :headers => {}, :body => <<-EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <prowl>
+            <success code="200" remaining="999" resetdate="1234567890" />
+            <retrieve token="token" url="https://prowlapp.com/retrieve.php?token=token" />
+          </prowl>
+          EOF
+        )
+
+      response = Prowler.retrieve_token
+
+      assert_requested :get, "#{Prowler::SERVICE_URL}/retrieve/token?providerkey=providerkey"
+      assert_instance_of Prowler::Token, response
+      assert_equal response.remaining, 999
+      assert_equal response.reset_date, Time.at(1234567890)
+      assert_equal response.token, "token"
+      assert_equal response.url, "https://prowlapp.com/retrieve.php?token=token"
+    end
+
+    should "request an API key and return a Prowler::ApiKey instance when successful" do
+      stub_request(:get, "#{Prowler::SERVICE_URL}/retrieve/apikey?providerkey=providerkey&token=token").
+        to_return(:status => 200, :headers => {}, :body => <<-EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <prowl>
+            <success code="200" remaining="999" resetdate="1234567890" />
+            <retrieve apikey="apikey" />
+          </prowl>
+          EOF
+        )
+
+      response = Prowler.retrieve_api_key("token")
+
+      assert_requested :get, "#{Prowler::SERVICE_URL}/retrieve/apikey?providerkey=providerkey&token=token"
+      assert_instance_of Prowler::ApiKey, response
+      assert_equal response.remaining, 999
+      assert_equal response.reset_date, Time.at(1234567890)
+      assert_equal response.api_key, "apikey"
+    end
+
   end
 
   context "Using deprecated API" do

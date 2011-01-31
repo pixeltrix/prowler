@@ -57,6 +57,7 @@
 
 require 'logger'
 require 'net/https'
+require 'rexml/document'
 require 'uri'
 
 require 'prowler/application'
@@ -81,6 +82,24 @@ module Prowler
     # * api_key: API key to be verified - uses the first configured key(s) if not provided.
     def verify(api_key = nil)
       new.verify(api_key)
+    end
+
+    # Retrieve a registration token and confirmation url for the initial phase
+    # of fetching an API key for a user. The token is valid for 24 hours.
+    # This API command requires the provider_key to be configured.
+    #
+    # Returns either Prowler::Token object if successful or nil if an error occurs.
+    def retrieve_token
+      new.retrieve_token
+    end
+
+    # Retrieve an API key for a user using the token provided by retrieve_token.
+    # This API command requires the provider_key to be configured.
+    # * token: Token returned by retrieve_token command.
+    #
+    # Returns either Prowler::ApiKey object if successful or nil if an error occurs.
+    def retrieve_api_key(token)
+      new.retrieve_api_key(token)
     end
 
     # Create an instance for sending to different accounts within a single Rails application
