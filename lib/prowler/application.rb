@@ -19,9 +19,9 @@ module Prowler
 
     # Create an instance for sending to different accounts within a single Rails application
     # Pass any of the following options to override the global configuration:
-    # * +:application+:  The name of your application.
-    # * +:provider_key+: Key to override the rate limit of 1000 requests per hour.
-    # * +:api_key+:      Your API key.
+    # * :application:  The name of your application.
+    # * :provider_key: Key to override the rate limit of 1000 requests per hour.
+    # * :api_key:      Your API key.
     def initialize(*args)
       if args.empty?
         CONFIG_ATTRS.each{ |attr| send("#{attr}=".to_sym, Prowler.send(attr)) }
@@ -40,9 +40,9 @@ module Prowler
     # * api_key: One or more API keys to be notified - uses the configured key(s) if not provided.
     #
     # The following options are supported:
-    # * +:delayed+:  Whether to use Delayed::Job to send notifications.
-    # * +:priority+: The priority of the notification - see Prowler::Priority.
-    # * +:url+:      A custom url for the Prowl application to open.
+    # * :delayed:  Whether to use Delayed::Job to send notifications.
+    # * :priority: The priority of the notification - see Prowler::Priority.
+    # * :url:      A custom url for the Prowl application to open.
     def notify(event, message, *args)
       api_key = args.first.is_a?(String) || args.first.is_a?(Array) ? args.shift : self.api_key
 

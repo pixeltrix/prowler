@@ -1,9 +1,10 @@
 module Prowler
   class Error < StandardError
-    # Attributes:
-    # * status:  The status code returned by the Prowl API
-    # * message: The error message returned by the Prowl API
-    attr_reader :status, :message
+    # The status code returned by the Prowl API
+    attr_reader :status
+
+    # The error message returned by the Prowl API
+    attr_reader :message
 
     def initialize(document) #:nodoc:
       error = document.elements["prowl/error"]
@@ -14,11 +15,14 @@ module Prowler
   end
 
   class Success
-    # Attributes:
-    # * status:     The status code returned by the Prowl API - always 200
-    # * remaining:  The number of remaining requests until the counter is reset
-    # * reset_date: The time when the request counter will be reset
-    attr_reader :status, :remaining, :reset_date
+    # The status code returned by the Prowl API - always 200
+    attr_reader :status
+
+    # The number of remaining requests until the counter is reset
+    attr_reader :remaining
+
+    # The time when the request counter will be reset
+    attr_reader :reset_date
 
     def initialize(document) #:nodoc:
       success = document.elements["prowl/success"]
@@ -30,10 +34,11 @@ module Prowler
   end
 
   class Token < Success
-    # Attributes:
-    # * token: The token returned by the Prowl API to use in a retrieve_api_key request
-    # * url:   The url to redirect a user to for access confirmation
-    attr_reader :token, :url
+    # The token returned by the Prowl API to use in a retrieve_api_key request
+    attr_reader :token
+
+    # The url to redirect a user to for access confirmation
+    attr_reader :url
 
     def initialize(document) #:nodoc:
       super(document)
@@ -45,8 +50,7 @@ module Prowler
   end
 
   class ApiKey < Success
-    # Attributes:
-    # * api_key: The API key returned by the Prowl API
+    # The API key returned by the Prowl API
     attr_reader :api_key
 
     def initialize(document) #:nodoc:
