@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{prowler}
-  s.version = "1.2.1"
+  s.version = "1.3.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Andrew White"]
-  s.date = %q{2011-01-30}
+  s.date = %q{2011-01-31}
   s.description = %q{A plugin/gem that provides access to the Prowl API (http://prowlapp.com). Works with Rails 2 or 3 as well as any other Ruby web frameworks or in your own scripts.}
   s.email = %q{andyw@pixeltrix.co.uk}
   s.extra_rdoc_files = [
@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
     "lib/prowler/delayed_job.rb",
     "lib/prowler/priority.rb",
     "lib/prowler/railtie.rb",
+    "lib/prowler/response.rb",
     "lib/prowler/tasks.rb",
     "lib/prowler/version.rb",
     "prowler.gemspec",
