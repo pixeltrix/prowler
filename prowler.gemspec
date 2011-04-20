@@ -19,7 +19,6 @@ EOF
   s.files = [
     ".gemtest",
     "CHANGELOG",
-    "INSTALL",
     "MIT-LICENSE",
     "README.md",
     "Rakefile",
