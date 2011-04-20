@@ -6,7 +6,7 @@ require 'prowler/version'
 
 module Prowler
 
-  SERVICE_URL = "https://prowlapp.com/publicapi"
+  SERVICE_URL = "https://api.prowlapp.com/publicapi"
   USER_AGENT = "Prowler/#{VERSION}"
   MULTIPLE_APIKEY_COMMANDS = %w(add)
   CONFIG_ATTRS = [:application, :provider_key, :api_key, :service_url]
