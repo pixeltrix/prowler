@@ -31,6 +31,7 @@ module Prowler
           send("#{attr}=".to_sym, args[0][attr] || Prowler.send(attr))
         end
       else
+        @service_url = Prowler.service_url
         @api_key, @application, @provider_key = args[0], args[1], args[2]
       end
     end

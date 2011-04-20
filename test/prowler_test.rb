@@ -515,6 +515,11 @@ class ProwlerTest < Test::Unit::TestCase
         assert_equal "application2", prowler.application
         assert_equal "providerkey2", prowler.provider_key
       end
+
+      should "configure default service url" do
+        prowler = Prowler.new("apikey", "application")
+        assert_equal Prowler::SERVICE_URL, prowler.service_url
+      end
     end
 
     context "Sending a notification" do
