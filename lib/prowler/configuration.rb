@@ -1,6 +1,6 @@
 module Prowler
   class << self
-    attr_accessor :api_key, :provider_key
+    attr_accessor :service_url, :api_key, :provider_key
     attr_accessor :application, :send_notifications
     attr_accessor :read_timeout, :open_timeout #:nodoc:
     attr_accessor :delayed, :verify_certificate, :root_certificates
@@ -9,6 +9,10 @@ module Prowler
     # Call this method to configure your account details in an initializer.
     def configure
       yield self
+    end
+
+    def service_url #:nodoc:
+      @service_url ||= SERVICE_URL
     end
 
     def send_notifications #:nodoc:
@@ -25,7 +29,7 @@ module Prowler
 
     # Reset configuration
     def reset_configuration
-      @application = @api_key = @provider_key = nil
+      @service_url = @application = @api_key = @provider_key = nil
       @delayed = @verify_certificate = @root_certificates = nil
       @send_notifications = @read_timeout = @open_timeout = nil
     end

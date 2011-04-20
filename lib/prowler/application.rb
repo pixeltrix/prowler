@@ -9,12 +9,12 @@ module Prowler
   SERVICE_URL = "https://prowlapp.com/publicapi"
   USER_AGENT = "Prowler/#{VERSION}"
   MULTIPLE_APIKEY_COMMANDS = %w(add)
-  CONFIG_ATTRS = [:application, :provider_key, :api_key]
+  CONFIG_ATTRS = [:application, :provider_key, :api_key, :service_url]
 
   class ConfigurationError < StandardError; end
 
   class Application
-    attr_accessor :api_key, :provider_key #:nodoc:
+    attr_accessor :service_url, :api_key, :provider_key #:nodoc:
     attr_accessor :application, :send_notifications #:nodoc:
 
     # Create an instance for sending to different accounts within a single Rails application
@@ -22,6 +22,7 @@ module Prowler
     # * :application:  The name of your application.
     # * :provider_key: Key to override the rate limit of 1000 requests per hour.
     # * :api_key:      Your API key.
+    # * :service_url:  Override the configured service url
     def initialize(*args)
       if args.empty?
         CONFIG_ATTRS.each{ |attr| send("#{attr}=".to_sym, Prowler.send(attr)) }
@@ -145,13 +146,13 @@ module Prowler
       end
 
       def perform_get(command, params, klass) #:nodoc:
-        url = URI.parse("#{SERVICE_URL}/#{command}?#{params.map{ |k,v| %(#{URI.encode(k.to_s)}=#{URI.encode(v.to_s)}) }.join('&')}")
+        url = URI.parse("#{service_url}/#{command}?#{params.map{ |k,v| %(#{URI.encode(k.to_s)}=#{URI.encode(v.to_s)}) }.join('&')}")
         request = Net::HTTP::Get.new("#{url.path}?#{url.query}", headers)
         perform_request(url, request, klass)
       end
 
       def perform_post(command, params, klass) #:nodoc:
-        url = URI.parse("#{SERVICE_URL}/#{command}")
+        url = URI.parse("#{service_url}/#{command}")
         request = Net::HTTP::Post.new(url.path, headers)
         request.form_data = params
         perform_request(url, request, klass)

@@ -24,11 +24,13 @@ class ProwlerTest < Test::Unit::TestCase
 
     should "be done with a block" do
       Prowler.configure do |config|
+        config.service_url = "test.host"
         config.api_key = "apikey"
         config.application = "application"
         config.provider_key = "providerkey"
       end
 
+      assert_equal "test.host",   Prowler.service_url
       assert_equal "apikey",      Prowler.api_key
       assert_equal "application", Prowler.application
       assert_equal "providerkey", Prowler.provider_key
@@ -551,6 +553,37 @@ class ProwlerTest < Test::Unit::TestCase
           :priority => Prowler::Priority::HIGH.to_s
         }
       end
+    end
+  end
+
+  context "When using a custom service url" do
+    setup do
+      Prowler.reset_configuration
+      Prowler.configure do |config|
+        config.service_url = "https://test.host/publicapi"
+        config.api_key = "apikey"
+        config.application = "Application Name"
+      end
+    end
+
+    should "send notifications to the custom service url" do
+      stub_request(:post, "https://test.host/publicapi/add")
+
+      Prowler.notify "Event Name", "Message Text"
+
+      assert_requested :post, "https://test.host/publicapi/add", :body => {
+        :application => "Application Name",
+        :apikey => "apikey",
+        :event => "Event Name",
+        :description => "Message Text",
+        :priority => Prowler::Priority::NORMAL.to_s
+      }
+    end
+
+    should "verify the API key with the custom url" do
+      stub_request :get, "https://test.host/publicapi/verify?apikey=apikey"
+      Prowler.verify
+      assert_requested :get, "https://test.host/publicapi/verify?apikey=apikey"
     end
   end
 end
