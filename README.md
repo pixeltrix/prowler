@@ -1,6 +1,8 @@
 Prowler
 =======
 
+[![Build Status][build]][travis] [![Dependency Status][depends]][gemnasium]
+
 This is a plugin/gem for integrating apps with the Prowl iPhone application.
 
 Installation
@@ -111,3 +113,9 @@ is essential. Once you have completed your patch please open a GitHub
 pull request and I will review it and respond as quickly as possible.
 
 Copyright (c) 2011 Andrew White, released under the MIT license
+
+[build]: https://secure.travis-ci.org/pixeltrix/prowler.png
+[travis]: http://travis-ci.org/pixeltrix/prowler
+[depends]: https://gemnasium.com/pixeltrix/prowler.png?travis
+[gemnasium]: https://gemnasium.com/pixeltrix/prowler
+
