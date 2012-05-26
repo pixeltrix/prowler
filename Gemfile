@@ -6,4 +6,8 @@ gem 'rdoc', '>= 3.12'
 gem 'shoulda-context', '>= 1.0.0'
 gem 'webmock', '>= 1.8.7'
 
+platforms :jruby do
+  gem 'jruby-openssl', '>= 0.7.7'
+end
+
 gemspec
