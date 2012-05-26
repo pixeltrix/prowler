@@ -1,9 +1,6 @@
-require 'rake'
 require 'rake/testtask'
-require 'rake/rdoctask'
-require 'bundler'
-
-Bundler::GemHelper.install_tasks
+require 'bundler/gem_tasks'
+require 'rdoc/task'
 
 desc 'Default: run prowler unit tests.'
 task :default => :test

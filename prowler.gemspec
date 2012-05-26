@@ -43,10 +43,5 @@ EOF
   s.test_files    = ["test/prowler_test.rb"]
   s.require_paths = ["lib"]
 
-  s.add_development_dependency "bundler", "~> 1.0.10"
-  s.add_development_dependency "mocha", "~> 0.9.12"
-  s.add_development_dependency "shoulda", "~> 2.11.3"
-  s.add_development_dependency "webmock", "~> 1.6.2"
-
 end
 
