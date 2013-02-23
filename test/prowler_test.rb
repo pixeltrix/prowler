@@ -1,6 +1,6 @@
 require 'test/unit'
 require 'rubygems'
-require 'mocha'
+require 'mocha/setup'
 require 'shoulda-context'
 require 'webmock/test_unit'
 require File.expand_path('../../lib/prowler', __FILE__)
