@@ -182,7 +182,7 @@ module Prowler
                 klass = Error
               end
 
-              unless response.body.empty?
+              unless response.body.to_s.empty?
                 document = REXML::Document.new(response.body)
 
                 if document && klass == Error
