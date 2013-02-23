@@ -1,10 +1,10 @@
 module Prowler
   class << self
-    attr_accessor :service_url, :api_key, :provider_key
-    attr_accessor :application, :send_notifications
-    attr_accessor :read_timeout, :open_timeout #:nodoc:
-    attr_accessor :delayed, :verify_certificate, :root_certificates
-    attr_accessor :raise_errors
+    attr_writer :service_url, :send_notifications, :delayed
+    attr_writer :raise_errors, :root_certificates
+    attr_writer :read_timeout, :open_timeout
+
+    attr_accessor :api_key, :provider_key, :application, :verify_certificate
 
     # Call this method to configure your account details in an initializer.
     def configure

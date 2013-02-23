@@ -15,7 +15,8 @@ module Prowler
 
   class Application
     attr_accessor :service_url, :api_key, :provider_key #:nodoc:
-    attr_accessor :application, :send_notifications #:nodoc:
+    attr_accessor :application #:nodoc:
+    attr_writer :send_notifications #:nodoc:
 
     # Create an instance for sending to different accounts within a single Rails application
     # Pass any of the following options to override the global configuration:
@@ -24,6 +25,8 @@ module Prowler
     # * :api_key:      Your API key.
     # * :service_url:  Override the configured service url
     def initialize(*args)
+      @send_notifications = true
+
       if args.empty?
         CONFIG_ATTRS.each{ |attr| send("#{attr}=".to_sym, Prowler.send(attr)) }
       elsif args.first.is_a?(Hash)
@@ -139,7 +142,7 @@ module Prowler
       end
 
       def send_notifications #:nodoc:
-        @send_notifications.nil? ? true : !!@send_notifications
+        !!@send_notifications
       end
 
       def send_notifications? #:nodoc:
@@ -192,7 +195,7 @@ module Prowler
                 end
               end
             end
-          rescue TimeoutError => e
+          rescue TimeoutError
             logger.error "Timeout while contacting the Prowl server."
             false
           end
