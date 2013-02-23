@@ -147,7 +147,7 @@ module Prowler
       end
 
       def perform_get(command, params, klass) #:nodoc:
-        url = URI.parse("#{service_url}/#{command}?#{params.map{ |k,v| %(#{URI.encode(k.to_s)}=#{URI.encode(v.to_s)}) }.join('&')}")
+        url = parse_url("#{service_url}/#{command}?#{params.map{ |k,v| %(#{escape_url(k.to_s)}=#{escape_url(v.to_s)}) }.join('&')}")
         request = Net::HTTP::Get.new("#{url.path}?#{url.query}", headers)
         perform_request(url, request, klass)
       end
@@ -205,6 +205,18 @@ module Prowler
         else
           api_key.to_s
         end
+      end
+
+      def url_parser
+        @url_parser ||= defined?(URI::Parser) ? URI::Parser.new : URI
+      end
+
+      def parse_url(url)
+        url_parser.parse(url)
+      end
+
+      def escape_url(url)
+        url_parser.escape(url)
       end
   end
 end
